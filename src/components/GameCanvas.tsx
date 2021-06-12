@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { sampleFragment, sampleVertex, load } from '../shaders'
+import { sampleFragment, sampleVertex, load as loadShaders } from '../shaders'
+import { flowerModel, load as loadModels } from '../models'
 import { createProgram, createShader } from '../utils'
+import { OBJ } from 'webgl-obj-loader'
 
 export function GameCanvas() {
     const cRef = useRef<HTMLCanvasElement>(null)
@@ -31,6 +33,8 @@ export function GameCanvas() {
                 gl.FRAGMENT_SHADER,
                 sampleFragment
             )
+
+            OBJ.initMeshBuffers(gl, flowerModel)
 
             let program = createProgram(gl, vertexShader, fragmentShader)
             if (program) {
@@ -90,7 +94,6 @@ export function GameCanvas() {
                 times.push(now)
                 let smoothing = 0.9 // larger=more smoothing
                 fps = fps * smoothing + times.length * (1.0 - smoothing)
-                console.log(fps)
 
                 if (framerateRef && framerateRef.current) {
                     framerateRef.current.innerText = `FPS: ${Math.round(fps)}`
@@ -102,20 +105,14 @@ export function GameCanvas() {
 
     if (!loading && !loaded) {
         setLoading(true)
-        load().then(() => {
-            setLoading(false)
-            setLoaded(true)
+        loadShaders().then(() => {
+            loadModels().then(() => {
+                setLoading(false)
+                setLoaded(true)
 
-            window.requestAnimationFrame(draw)
+                window.requestAnimationFrame(draw)
+            })
         })
-    }
-
-    if (loaded) {
-        console.log(sampleFragment)
-    }
-
-    if (gl) {
-        console.log('Context available!')
     }
 
     return (
