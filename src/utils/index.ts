@@ -36,4 +36,8 @@ export function createProgram(
     }
 }
 
+export const degToRad = (deg: number) => {
+    return (deg * Math.PI) / 180
+}
+
 export {}
