@@ -9,6 +9,7 @@ import { GameObject } from '../utils/GameObject'
 let cameraObj = new GameObject({})
 let root = new GameObject({})
 let flowerObj = new GameObject({})
+flowerObj.translate({ v: new Vector3([2, 2, -1]) })
 let treeObj = new GameObject({})
 treeObj.addChild({ child: flowerObj })
 root.addChild({ child: treeObj })
@@ -21,7 +22,6 @@ const perfectFrameTime = 1000 / 60
 let times: number[] = []
 let fps = 0
 const directionalLightDir = new Vector3([-1, -1, 0]).normalize()
-let lastMouseCoords = { x: 0, y: 0 }
 let keys = {
     w: false,
     a: false,
@@ -149,30 +149,37 @@ export function GameCanvas() {
         }
 
         let cameraOrientEuler = new Euler(cameraObj.orientation)
-        console.log(cameraOrientEuler)
         let amtX = turnAmounts.x * deltaTime * turnSpeed
         turnAmounts.x -= amtX
-        if (
-            (cameraOrientEuler.x * 2 * Math.PI <= degToRad(-120) && amtX < 0) ||
-            (cameraOrientEuler.x * 2 * Math.PI >= degToRad(120) && amtX > 0)
-        ) {
-            amtX = 0
-            console.log('cap')
-        }
-        cameraObj.rotate({ angles: new Vector3([degToRad(amtX), 0, 0]) })
 
         let amtY = turnAmounts.y * deltaTime * turnSpeed
         turnAmounts.y -= amtY
-        cameraObj.rotate({ angles: new Vector3([0, degToRad(amtY), 0]) })
+
+        cameraObj.rotate({
+            angles: new Vector3([degToRad(amtX), degToRad(amtY), 0]),
+        })
     }
 
     const renderRecursive = (
         gl: WebGL2RenderingContext,
         gameObj: GameObject,
         positionAttributeLocation: number,
-        normalAttributeLocation: number
+        normalAttributeLocation: number,
+        worldMatLocation: WebGLUniformLocation | null,
+        parentTransform: Matrix4
     ) => {
         if (gameObj.mesh) {
+            if (worldMatLocation) {
+                const worldMat = new Matrix4()
+                    .fromQuaternion(gameObj.orientation)
+                    .translate(gameObj.position)
+                gl.uniformMatrix4fv(
+                    worldMatLocation,
+                    false,
+                    worldMat.multiplyRight(parentTransform)
+                )
+            }
+
             gl.bindBuffer(gl.ARRAY_BUFFER, gameObj.mesh.vertexBuffer)
             gl.vertexAttribPointer(
                 positionAttributeLocation,
@@ -210,7 +217,11 @@ export function GameCanvas() {
                 gl,
                 child,
                 positionAttributeLocation,
-                normalAttributeLocation
+                normalAttributeLocation,
+                worldMatLocation,
+                new Matrix4()
+                    .fromQuaternion(gameObj.orientation)
+                    .translate(gameObj.position)
             )
         }
     }
@@ -220,7 +231,7 @@ export function GameCanvas() {
         const deltaTime = (now - lastRenderTime) / perfectFrameTime
 
         const zNear = 0.1
-        const zFar = 50
+        const zFar = 100
         const fovRadians = degToRad(60)
 
         if (gl && program) {
@@ -228,29 +239,27 @@ export function GameCanvas() {
             gl.useProgram(program)
 
             gl.enable(gl.DEPTH_TEST)
-            // gl.enable(gl.CULL_FACE)
+
+            gl.enable(gl.CULL_FACE)
 
             handleInput(deltaTime)
+            let aspect = gl.canvas.width / gl.canvas.height
+            if ('clientWidth' in gl.canvas) {
+                aspect = gl.canvas.clientWidth / gl.canvas.clientHeight
+            }
 
-            const aspect = gl.canvas.width / gl.canvas.height
             const projMat = new Matrix4().perspective({
                 fov: fovRadians,
+                fovy: fovRadians,
                 aspect,
                 near: zNear,
                 far: zFar,
             })
 
-            camera = new Matrix4()
-                .fromQuaternion(cameraObj.orientation)
-                .translate(cameraObj.position)
-                .multiplyRight(
-                    new Matrix4().fromQuaternion(cameraObj.orientation)
-                )
+            camera = cameraObj.getTransform()
 
             // Make a view matrix from the camera matrix.
             const view = camera.invert()
-
-            const worldMat = new Matrix4().scale(1)
 
             let worldMatLoc = gl.getUniformLocation(program, 'u_world')
             let viewMatLoc = gl.getUniformLocation(program, 'u_view')
@@ -260,7 +269,6 @@ export function GameCanvas() {
                 'u_directionalLightDir'
             )
 
-            gl.uniformMatrix4fv(worldMatLoc, false, worldMat)
             gl.uniformMatrix4fv(viewMatLoc, false, view)
             gl.uniformMatrix4fv(projMatLoc, false, projMat)
             gl.uniform3fv(dirLightDirLoc, directionalLightDir)
@@ -285,11 +293,16 @@ export function GameCanvas() {
             gl.clearColor(0, 0, 0, 1)
             gl.clear(gl.COLOR_BUFFER_BIT)
 
+            treeObj.orientation.rotateY(degToRad(2) * deltaTime)
+            flowerObj.orientation.rotateY(degToRad(10) * deltaTime)
+
             renderRecursive(
                 gl,
                 root,
                 positionAttributeLocation,
-                normalAttributeLocation
+                normalAttributeLocation,
+                worldMatLoc,
+                new Matrix4().identity()
             )
             updateFPS()
             lastRenderTime = now

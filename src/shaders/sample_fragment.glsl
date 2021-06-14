@@ -5,6 +5,8 @@
 precision highp float;
 
 in vec3 fs_normal;
+in vec3 fs_pos;
+in vec4 fs_cameraSpacePosition;
 
 uniform vec3 u_directionalLightDir;
 
@@ -15,5 +17,5 @@ void main() {
     vec3 normal = normalize(fs_normal);
     float light = dot(normal, -u_directionalLightDir);
     // Just set the output to a constant reddish-purple
-    outColor = light * vec4(0.5, 0.5, 0.5, 1.0);
+    outColor = light * vec4(fs_cameraSpacePosition);
 }

@@ -31,19 +31,24 @@ export class GameObject {
 
     public rotate(args: { angles: Vector3 }) {
         if (args.angles) {
-            let qX = new Quaternion().setFromAxisAngle(
-                new Vector3([1, 0, 0]),
-                args.angles.x
-            )
-            let qY = new Quaternion().setFromAxisAngle(
-                new Vector3([0, 1, 0]),
-                args.angles.y
-            )
-            let rot = qY.multiplyLeft(qX, undefined)
+            let qX = new Quaternion()
+                .fromAxisRotation(new Vector3([1, 0, 0]), args.angles.x)
+                .normalize()
+            let qY = new Quaternion()
+                .fromAxisRotation(new Vector3([0, 1, 0]), args.angles.y)
+                .normalize()
+            let rot = qY.multiplyLeft(qX, undefined).normalize()
             this.orientation = this.orientation
                 .multiplyRight(rot, undefined)
                 .normalize()
         }
+    }
+
+    public getTransform(): Matrix4 {
+        return new Matrix4()
+            .scale(this.scale)
+            .translate(this.position)
+            .multiplyRight(new Matrix4().fromQuaternion(this.orientation))
     }
 
     public addChild(args: { child: GameObject }) {
