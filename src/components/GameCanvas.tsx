@@ -128,7 +128,7 @@ export function GameCanvas() {
 
     const handleInput = (deltaTime: number) => {
         const speed = 0.1
-        const turnSpeed = 1.5
+        const turnSpeed = 1
 
         if (keys.w || keys.s) {
             const direction = keys.w ? 1 : -1
@@ -170,9 +170,7 @@ export function GameCanvas() {
     ) => {
         if (gameObj.mesh) {
             if (worldMatLocation) {
-                const worldMat = new Matrix4()
-                    .fromQuaternion(gameObj.orientation)
-                    .translate(gameObj.position)
+                const worldMat = gameObj.getTransform()
                 gl.uniformMatrix4fv(
                     worldMatLocation,
                     false,
@@ -250,7 +248,6 @@ export function GameCanvas() {
 
             const projMat = new Matrix4().perspective({
                 fov: fovRadians,
-                fovy: fovRadians,
                 aspect,
                 near: zNear,
                 far: zFar,
@@ -291,6 +288,7 @@ export function GameCanvas() {
 
             // Clear the canvas
             gl.clearColor(0, 0, 0, 1)
+            gl.clear(gl.DEPTH_BUFFER_BIT)
             gl.clear(gl.COLOR_BUFFER_BIT)
 
             treeObj.orientation.rotateY(degToRad(2) * deltaTime)
