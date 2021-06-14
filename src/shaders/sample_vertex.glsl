@@ -9,7 +9,7 @@ uniform mat4 u_world;
 uniform mat4 u_view;
 uniform mat4 u_proj;
 
-out vec3 fs_normal;
+out  vec3 fs_normal;
 
 // all shaders have a main function
 void main() {

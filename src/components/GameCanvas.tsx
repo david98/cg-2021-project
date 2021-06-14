@@ -3,7 +3,7 @@ import { sampleFragment, sampleVertex, load as loadShaders } from '../shaders'
 import { flowerModel, tree1Model, load as loadModels } from '../models'
 import { createProgram, createShader, degToRad } from '../utils'
 import { OBJ } from 'webgl-obj-loader'
-import { Matrix4, Vector3 } from 'math.gl'
+import { Euler, Matrix4, Vector3 } from '@math.gl/core'
 import { GameObject } from '../utils/GameObject'
 
 let cameraObj = new GameObject({})
@@ -34,6 +34,10 @@ let keys = {
     q: false,
     e: false,
 }
+let turnAmounts = {
+    x: 0,
+    y: 0,
+}
 
 export function GameCanvas() {
     const cRef = useRef<HTMLCanvasElement>(null)
@@ -50,13 +54,6 @@ export function GameCanvas() {
                 gl.canvas.height = window.innerHeight
                 gl.canvas.width = window.innerWidth
             }
-        })
-
-        window.addEventListener('mousemove', (e) => {
-            const deltaX = e.clientX - lastMouseCoords.x
-            const deltaY = e.clientY - lastMouseCoords.y
-
-            lastMouseCoords = { x: e.clientX, y: e.clientY }
         })
 
         window.addEventListener('keydown', (e) => {
@@ -98,6 +95,19 @@ export function GameCanvas() {
             treeObj.mesh = tree1Model
             initMeshBuffers(gl, root)
 
+            if ('requestPointerLock' in gl.canvas) {
+                gl.canvas.requestPointerLock()
+            }
+            gl.canvas.addEventListener('click', () => {
+                if ('requestPointerLock' in gl.canvas) {
+                    gl.canvas.requestPointerLock()
+                }
+            })
+            gl.canvas.addEventListener('mousemove', (e: any) => {
+                turnAmounts.x = -e.movementY
+                turnAmounts.y = -e.movementX
+            })
+
             program = createProgram(gl, vertexShader, fragmentShader)
         }
     }
@@ -118,7 +128,7 @@ export function GameCanvas() {
 
     const handleInput = (deltaTime: number) => {
         const speed = 0.1
-        const turnSpeed = 1.0
+        const turnSpeed = 1.5
 
         if (keys.w || keys.s) {
             const direction = keys.w ? 1 : -1
@@ -138,38 +148,22 @@ export function GameCanvas() {
             })
         }
 
-        if (keys.q || keys.e) {
-            const direction = keys.q ? 1 : -1
-            cameraObj.rotateLocal({
-                angles: new Vector3([
-                    0,
-                    0,
-                    degToRad(deltaTime * turnSpeed * direction),
-                ]),
-            })
+        let cameraOrientEuler = new Euler(cameraObj.orientation)
+        console.log(cameraOrientEuler)
+        let amtX = turnAmounts.x * deltaTime * turnSpeed
+        turnAmounts.x -= amtX
+        if (
+            (cameraOrientEuler.x * 2 * Math.PI <= degToRad(-120) && amtX < 0) ||
+            (cameraOrientEuler.x * 2 * Math.PI >= degToRad(120) && amtX > 0)
+        ) {
+            amtX = 0
+            console.log('cap')
         }
+        cameraObj.rotate({ angles: new Vector3([degToRad(amtX), 0, 0]) })
 
-        if (keys.ArrowLeft || keys.ArrowRight) {
-            const direction = keys.ArrowLeft ? 1 : -1
-            cameraObj.rotateLocal({
-                angles: new Vector3([
-                    0,
-                    degToRad(deltaTime * turnSpeed * direction),
-                    0,
-                ]),
-            })
-        }
-
-        if (keys.ArrowUp || keys.ArrowDown) {
-            const direction = keys.ArrowUp ? 1 : -1
-            cameraObj.rotateLocal({
-                angles: new Vector3([
-                    degToRad(deltaTime * turnSpeed * direction),
-                    0,
-                    0,
-                ]),
-            })
-        }
+        let amtY = turnAmounts.y * deltaTime * turnSpeed
+        turnAmounts.y -= amtY
+        cameraObj.rotate({ angles: new Vector3([0, degToRad(amtY), 0]) })
     }
 
     const renderRecursive = (
@@ -233,7 +227,7 @@ export function GameCanvas() {
             // Tell it to use our program (pair of shaders)
             gl.useProgram(program)
 
-            // gl.enable(gl.DEPTH_TEST)
+            gl.enable(gl.DEPTH_TEST)
             // gl.enable(gl.CULL_FACE)
 
             handleInput(deltaTime)

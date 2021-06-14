@@ -1,4 +1,11 @@
-import { Matrix4, Quaternion, Vector3, Vector4 } from 'math.gl'
+import {
+    Euler,
+    Matrix3,
+    Matrix4,
+    Quaternion,
+    Vector3,
+    Vector4,
+} from '@math.gl/core'
 import { Mesh, MeshWithBuffers } from 'webgl-obj-loader'
 
 export class GameObject {
@@ -23,13 +30,20 @@ export class GameObject {
     }
 
     public rotate(args: { angles: Vector3 }) {
-        this.orientation.rotateX(args.angles.x)
-        this.orientation.rotateY(args.angles.y)
-        this.orientation.rotateZ(args.angles.z)
-    }
-
-    public rotateLocal(args: { angles: Vector3 }) {
-        this.rotate(args)
+        if (args.angles) {
+            let qX = new Quaternion().setFromAxisAngle(
+                new Vector3([1, 0, 0]),
+                args.angles.x
+            )
+            let qY = new Quaternion().setFromAxisAngle(
+                new Vector3([0, 1, 0]),
+                args.angles.y
+            )
+            let rot = qY.multiplyLeft(qX, undefined)
+            this.orientation = this.orientation
+                .multiplyRight(rot, undefined)
+                .normalize()
+        }
     }
 
     public addChild(args: { child: GameObject }) {
