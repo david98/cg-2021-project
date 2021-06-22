@@ -3,15 +3,17 @@ import { sampleFragment, sampleVertex, load as loadShaders } from '../shaders'
 import { flowerModel, tree1Model, load as loadModels } from '../models'
 import { createProgram, createShader, degToRad } from '../utils'
 import { OBJ } from 'webgl-obj-loader'
-import { Euler, Matrix4, Vector3 } from '@math.gl/core'
+import { Euler, Matrix4, Vector3, Vector4 } from '@math.gl/core'
 import { GameObject } from '../utils/GameObject'
 
 let cameraObj = new GameObject({})
 let root = new GameObject({})
 let flowerObj = new GameObject({})
 flowerObj.translate({ v: new Vector3([2, 2, -1]) })
+flowerObj.color = new Vector4([1.0, 0, 0, 1])
 let treeObj = new GameObject({})
 treeObj.addChild({ child: flowerObj })
+treeObj.color = new Vector4([0.2, 1, 0, 1])
 root.addChild({ child: treeObj })
 
 let camera = new Matrix4()
@@ -33,6 +35,7 @@ let keys = {
     ArrowRight: false,
     q: false,
     e: false,
+    Shift: false,
 }
 let turnAmounts = {
     x: 0,
@@ -127,7 +130,10 @@ export function GameCanvas() {
     }
 
     const handleInput = (deltaTime: number) => {
-        const speed = 0.1
+        let speed = 0.1
+        if (keys.Shift) {
+            speed = 0.5
+        }
         const turnSpeed = 1
 
         if (keys.w || keys.s) {
@@ -162,6 +168,7 @@ export function GameCanvas() {
 
     const renderRecursive = (
         gl: WebGL2RenderingContext,
+        program: WebGLProgram,
         gameObj: GameObject,
         positionAttributeLocation: number,
         normalAttributeLocation: number,
@@ -177,6 +184,9 @@ export function GameCanvas() {
                     worldMat.multiplyRight(parentTransform)
                 )
             }
+
+            const colorLocation = gl.getUniformLocation(program, 'u_color')
+            gl.uniform4fv(colorLocation, gameObj.color)
 
             gl.bindBuffer(gl.ARRAY_BUFFER, gameObj.mesh.vertexBuffer)
             gl.vertexAttribPointer(
@@ -213,6 +223,7 @@ export function GameCanvas() {
         for (let child of gameObj.children) {
             renderRecursive(
                 gl,
+                program,
                 child,
                 positionAttributeLocation,
                 normalAttributeLocation,
@@ -296,6 +307,7 @@ export function GameCanvas() {
 
             renderRecursive(
                 gl,
+                program,
                 root,
                 positionAttributeLocation,
                 normalAttributeLocation,

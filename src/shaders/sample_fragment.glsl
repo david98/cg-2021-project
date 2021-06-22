@@ -6,8 +6,8 @@ precision highp float;
 
 in vec3 fs_normal;
 in vec3 fs_pos;
-in vec4 fs_cameraSpacePosition;
 
+uniform vec4 u_color;
 uniform vec3 u_directionalLightDir;
 
 // we need to declare an output for the fragment shader
@@ -17,5 +17,5 @@ void main() {
     vec3 normal = normalize(fs_normal);
     float light = dot(normal, -u_directionalLightDir);
     // Just set the output to a constant reddish-purple
-    outColor = light * vec4(fs_cameraSpacePosition);
+    outColor = light * u_color;
 }

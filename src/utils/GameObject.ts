@@ -15,6 +15,8 @@ export class GameObject {
 
     public mesh?: MeshWithBuffers
 
+    public color: Vector4 = new Vector4([0, 0, 0, 0])
+
     public children: GameObject[] = []
 
     constructor(args: {}) {}
