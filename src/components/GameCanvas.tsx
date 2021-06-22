@@ -23,7 +23,7 @@ const perfectFrameTime = 1000 / 60
 
 let times: number[] = []
 let fps = 0
-const directionalLightDir = new Vector3([-1, -1, 0]).normalize()
+const directionalLightDir = new Vector3([-1, 1, 0])
 let keys = {
     w: false,
     a: false,
@@ -154,7 +154,6 @@ export function GameCanvas() {
             })
         }
 
-        let cameraOrientEuler = new Euler(cameraObj.orientation)
         let amtX = turnAmounts.x * deltaTime * turnSpeed
         turnAmounts.x -= amtX
 
