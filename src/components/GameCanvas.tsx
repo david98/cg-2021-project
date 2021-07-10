@@ -36,7 +36,8 @@ const perfectFrameTime = 1000 / 60
 
 let times: number[] = []
 let fps = 0
-const directionalLightDir = new Vector3([-1, 1, 0])
+const directionalLightDir = new Vector3([1, -1, -1])
+const pointLightPosition = new Vector3([10, 10, 0])
 let keys = {
     w: false,
     a: false,
@@ -70,6 +71,8 @@ let skyboxPositionLocation: number | null = null
 let skyboxLocation: WebGLUniformLocation | null = null
 let skyboxViewDirectionProjectionInverseLocation: WebGLUniformLocation | null =
     null
+
+let pointLightWorldPositionLocation: WebGLUniformLocation | null = null
 
 export function GameCanvas() {
     const cRef = useRef<HTMLCanvasElement>(null)
@@ -281,6 +284,11 @@ export function GameCanvas() {
                 )
 
             loadSkybox(gl)
+
+            pointLightWorldPositionLocation = gl.getUniformLocation(
+                vegetationProgram,
+                'u_lightWorldPosition'
+            )
         }
     }
 
@@ -536,6 +544,7 @@ export function GameCanvas() {
             gl.uniformMatrix4fv(viewMatLoc, false, view)
             gl.uniformMatrix4fv(projMatLoc, false, projMat)
             gl.uniform3fv(dirLightDirLoc, directionalLightDir)
+            gl.uniform3fv(pointLightWorldPositionLocation, pointLightPosition)
 
             let positionAttributeLocation = gl.getAttribLocation(
                 vegetationProgram,
