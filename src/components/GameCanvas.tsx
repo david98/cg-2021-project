@@ -6,6 +6,13 @@ import {
     skyboxFragment,
     load as loadShaders,
 } from '../shaders'
+import negx from '../textures/skybox/negx.jpg'
+import negy from '../textures/skybox/negy.jpg'
+import negz from '../textures/skybox/negz.jpg'
+import posx from '../textures/skybox/posx.jpg'
+import posy from '../textures/skybox/posy.jpg'
+import posz from '../textures/skybox/posz.jpg'
+
 import { flowerModel, tree1Model, load as loadModels } from '../models'
 import { createProgram, createShader, degToRad } from '../utils'
 import { OBJ } from 'webgl-obj-loader'
@@ -116,27 +123,27 @@ export function GameCanvas() {
         const faceInfos = [
             {
                 target: gl.TEXTURE_CUBE_MAP_POSITIVE_X,
-                url: 'https://webgl2fundamentals.org/webgl/resources/images/computer-history-museum/pos-x.jpg',
+                url: posx,
             },
             {
                 target: gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
-                url: 'https://webgl2fundamentals.org/webgl/resources/images/computer-history-museum/neg-x.jpg',
+                url: negx,
             },
             {
                 target: gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
-                url: 'https://webgl2fundamentals.org/webgl/resources/images/computer-history-museum/pos-y.jpg',
+                url: posy,
             },
             {
                 target: gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
-                url: 'https://webgl2fundamentals.org/webgl/resources/images/computer-history-museum/neg-y.jpg',
+                url: negy,
             },
             {
                 target: gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
-                url: 'https://webgl2fundamentals.org/webgl/resources/images/computer-history-museum/pos-z.jpg',
+                url: posz,
             },
             {
                 target: gl.TEXTURE_CUBE_MAP_NEGATIVE_Z,
-                url: 'https://webgl2fundamentals.org/webgl/resources/images/computer-history-museum/neg-z.jpg',
+                url: negz,
             },
         ]
         faceInfos.forEach((faceInfo) => {
@@ -166,7 +173,6 @@ export function GameCanvas() {
             // Asynchronously load an image
             const image = new Image()
             image.src = url
-            image.crossOrigin = ''
             image.addEventListener('load', function () {
                 // Now that the image has loaded make copy it to the texture.
                 gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture)
