@@ -4,6 +4,7 @@
 // It will receive data from a buffer
 in vec4 a_position;
 in vec4 a_normal;
+in vec2 a_texcoord;
 
 uniform vec3 u_lightWorldPosition;
 
@@ -16,6 +17,7 @@ out vec4 fs_pos;
 out mat4 fs_camera_mat;
 out mat4 fs_invtrans_camera_mat;
 out vec3 v_surfaceToLight;
+out vec2 v_texcoord;
 
 // all shaders have a main function
 void main() {
@@ -34,4 +36,6 @@ void main() {
     // compute the vector of the surface to the light
     // and pass it to the fragment shader
     v_surfaceToLight = (u_view * vec4(u_lightWorldPosition, 1)).xyz - fs_pos.xyz;
+
+    v_texcoord = a_texcoord;
 }

@@ -12,8 +12,16 @@ import negz from '../textures/skybox/negz.jpg'
 import posx from '../textures/skybox/posx.jpg'
 import posy from '../textures/skybox/posy.jpg'
 import posz from '../textures/skybox/posz.jpg'
+import textureImg from '../textures/texture.jpg'
 
-import { flowerModel, tree1Model, load as loadModels } from '../models'
+import {
+    flowerModel,
+    tree1Model,
+    rock1Model,
+    stumpModel,
+    load as loadModels,
+    rock2Model,
+} from '../models'
 import { createProgram, createShader, degToRad } from '../utils'
 import { OBJ } from 'webgl-obj-loader'
 import { Euler, Matrix4, Vector3, Vector4 } from '@math.gl/core'
@@ -27,7 +35,15 @@ flowerObj.color = new Vector4([1.0, 0, 0, 1])
 let treeObj = new GameObject({})
 treeObj.addChild({ child: flowerObj })
 treeObj.color = new Vector4([0.2, 1, 0, 1])
+let rockObj = new GameObject({})
+rockObj.translate({ v: new Vector3([-10, 0, -1]) })
+let stump = new GameObject({})
+stump.translate({ v: new Vector3([0, 0, 4]) })
 root.addChild({ child: treeObj })
+root.addChild({ child: rockObj })
+root.addChild({ child: stump })
+
+const lightColor = new Vector4([1, 0.6, 0.2, 1])
 
 let camera = new Matrix4()
 
@@ -73,12 +89,16 @@ let skyboxViewDirectionProjectionInverseLocation: WebGLUniformLocation | null =
     null
 
 let pointLightWorldPositionLocation: WebGLUniformLocation | null = null
+let vegetationTexcoordAttributeLocation: number | null = null
+let vegetationTextureLocation: WebGLUniformLocation | null = null
+
+// Create a texture.
+let texture: WebGLTexture | null = null
 
 export function GameCanvas() {
     const cRef = useRef<HTMLCanvasElement>(null)
     const framerateRef = useRef<HTMLSpanElement>(null)
     const gl = cRef.current?.getContext('webgl2')
-    let program: WebGLProgram | null | undefined = undefined
 
     const [loading, setLoading] = useState<boolean>(false)
     const [loaded, setLoaded] = useState<boolean>(false)
@@ -120,7 +140,7 @@ export function GameCanvas() {
 
     const loadSkybox = (gl: WebGL2RenderingContext) => {
         // Create a texture.
-        var texture = gl.createTexture()
+        let texture = gl.createTexture()
         gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture)
 
         const faceInfos = [
@@ -161,6 +181,7 @@ export function GameCanvas() {
             const type = gl.UNSIGNED_BYTE
 
             // setup each face so it's immediately renderable
+            gl.activeTexture(gl.TEXTURE0)
             gl.texImage2D(
                 target,
                 level,
@@ -178,6 +199,7 @@ export function GameCanvas() {
             image.src = url
             image.addEventListener('load', function () {
                 // Now that the image has loaded make copy it to the texture.
+                gl.activeTexture(gl.TEXTURE0)
                 gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture)
                 gl.texImage2D(
                     target,
@@ -187,6 +209,7 @@ export function GameCanvas() {
                     type,
                     image
                 )
+                gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false)
                 gl.generateMipmap(gl.TEXTURE_CUBE_MAP)
             })
         })
@@ -202,6 +225,8 @@ export function GameCanvas() {
         if (gl) {
             flowerObj.mesh = flowerModel
             treeObj.mesh = tree1Model
+            rockObj.mesh = rock2Model
+            stump.mesh = stumpModel
             initMeshBuffers(gl, root)
 
             if ('requestPointerLock' in gl.canvas) {
@@ -289,6 +314,68 @@ export function GameCanvas() {
                 vegetationProgram,
                 'u_lightWorldPosition'
             )
+            vegetationTexcoordAttributeLocation = gl.getAttribLocation(
+                vegetationProgram,
+                'a_texcoord'
+            )
+            vegetationTextureLocation = gl.getUniformLocation(
+                vegetationProgram,
+                'u_texture'
+            )
+
+            texture = gl.createTexture()
+            gl.activeTexture(gl.TEXTURE1)
+            gl.bindTexture(gl.TEXTURE_2D, texture)
+
+            gl.texImage2D(
+                gl.TEXTURE_2D,
+                0,
+                gl.RGBA,
+                1,
+                1,
+                0,
+                gl.RGBA,
+                gl.UNSIGNED_BYTE,
+                new Uint8Array([0, 0, 255, 255])
+            )
+
+            let image = new Image()
+            image.src = textureImg
+            image.addEventListener('load', function () {
+                // Now that the image has loaded make copy it to the texture.
+                gl.activeTexture(gl.TEXTURE1)
+                gl.bindTexture(gl.TEXTURE_2D, texture)
+                gl.texImage2D(
+                    gl.TEXTURE_2D,
+                    0,
+                    gl.RGBA,
+                    gl.RGBA,
+                    gl.UNSIGNED_BYTE,
+                    image
+                )
+                gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
+                gl.texParameteri(
+                    gl.TEXTURE_2D,
+                    gl.TEXTURE_MAG_FILTER,
+                    gl.LINEAR
+                )
+                gl.texParameteri(
+                    gl.TEXTURE_2D,
+                    gl.TEXTURE_MIN_FILTER,
+                    gl.LINEAR
+                )
+                gl.generateMipmap(gl.TEXTURE_2D)
+                gl.texParameteri(
+                    gl.TEXTURE_2D,
+                    gl.TEXTURE_WRAP_S,
+                    gl.CLAMP_TO_EDGE
+                )
+                gl.texParameteri(
+                    gl.TEXTURE_2D,
+                    gl.TEXTURE_WRAP_T,
+                    gl.CLAMP_TO_EDGE
+                )
+            })
         }
     }
 
@@ -361,8 +448,9 @@ export function GameCanvas() {
                 )
             }
 
-            const colorLocation = gl.getUniformLocation(program, 'u_color')
-            gl.uniform4fv(colorLocation, gameObj.color)
+            const colorLocation = gl.getUniformLocation(program, 'u_lightColor')
+            gl.uniform4fv(colorLocation, lightColor)
+            gl.uniform1i(vegetationTextureLocation, 1)
 
             gl.bindBuffer(gl.ARRAY_BUFFER, gameObj.mesh.vertexBuffer)
             gl.vertexAttribPointer(
@@ -384,10 +472,27 @@ export function GameCanvas() {
                 0
             )
 
+            if (!vegetationTexcoordAttributeLocation) {
+                console.error('')
+                return
+            }
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, gameObj.mesh.textureBuffer)
+            gl.enableVertexAttribArray(vegetationTexcoordAttributeLocation)
+            gl.vertexAttribPointer(
+                vegetationTexcoordAttributeLocation,
+                2,
+                gl.FLOAT,
+                true,
+                0,
+                0
+            )
+
             let primitiveType = gl.TRIANGLES
             let offset = 0
 
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gameObj.mesh.indexBuffer)
+            gl.activeTexture(gl.TEXTURE1)
             gl.drawElements(
                 primitiveType,
                 gameObj.mesh.indexBuffer.numItems,
