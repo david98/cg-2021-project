@@ -27,6 +27,8 @@ import { OBJ } from 'webgl-obj-loader'
 import { Euler, Matrix4, Vector3, Vector4 } from '@math.gl/core'
 import { GameObject } from '../utils/GameObject'
 import Camera from '../utils/Camera'
+import { ShaderProgram } from '../utils/ShaderProgram'
+import { EnvironmentShaderProgram } from '../utils/EnvironmentShaderProgram'
 
 let camera = new Camera({})
 let root = new GameObject({})
@@ -287,6 +289,12 @@ export function GameCanvas() {
                 console.error('Missing vegetation shaders')
                 return
             }
+
+            const environmentShaderProgram = new EnvironmentShaderProgram({
+                gl,
+                vertexShaderSource: sampleVertex,
+                fragmentShaderSource: sampleFragment,
+            })
 
             vegetationProgram = createProgram(
                 gl,

@@ -7,6 +7,7 @@ import {
     Vector4,
 } from '@math.gl/core'
 import { MeshWithBuffers } from 'webgl-obj-loader'
+import { ShaderProgram } from './ShaderProgram'
 
 export class GameObject {
     public position: Vector3 = new Vector3([0, 0, 0])
@@ -14,6 +15,7 @@ export class GameObject {
     public scale: number = 1
 
     public mesh?: MeshWithBuffers
+    public program?: ShaderProgram
 
     public children: GameObject[] = []
 

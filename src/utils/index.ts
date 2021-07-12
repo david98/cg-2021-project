@@ -3,11 +3,11 @@ export function createShader(
     type: number,
     source: string
 ) {
-    var shader = gl.createShader(type)
+    const shader = gl.createShader(type)
     if (shader) {
         gl.shaderSource(shader, source)
         gl.compileShader(shader)
-        var success = gl.getShaderParameter(shader, gl.COMPILE_STATUS)
+        const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS)
         if (success) {
             return shader
         }
@@ -19,7 +19,7 @@ export function createShader(
 
 export function createProgram(
     gl: WebGL2RenderingContext,
-    vertexShader: any,
+    vertexShader: WebGLShader,
     fragmentShader: any
 ) {
     let program = gl.createProgram()
@@ -27,7 +27,7 @@ export function createProgram(
         gl.attachShader(program, vertexShader)
         gl.attachShader(program, fragmentShader)
         gl.linkProgram(program)
-        var success = gl.getProgramParameter(program, gl.LINK_STATUS)
+        const success = gl.getProgramParameter(program, gl.LINK_STATUS)
         if (success) {
             return program
         }
