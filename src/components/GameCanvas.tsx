@@ -26,26 +26,12 @@ import { createProgram, createShader, degToRad } from '../utils'
 import { OBJ } from 'webgl-obj-loader'
 import { Euler, Matrix4, Vector3, Vector4 } from '@math.gl/core'
 import { GameObject } from '../utils/GameObject'
+import Camera from '../utils/Camera'
 
-let cameraObj = new GameObject({})
+let camera = new Camera({})
 let root = new GameObject({})
-let flowerObj = new GameObject({})
-flowerObj.translate({ v: new Vector3([2, 2, -1]) })
-flowerObj.color = new Vector4([1.0, 0, 0, 1])
-let treeObj = new GameObject({})
-treeObj.addChild({ child: flowerObj })
-treeObj.color = new Vector4([0.2, 1, 0, 1])
-let rockObj = new GameObject({})
-rockObj.translate({ v: new Vector3([-10, 0, -1]) })
-let stump = new GameObject({})
-stump.translate({ v: new Vector3([0, 0, 4]) })
-root.addChild({ child: treeObj })
-root.addChild({ child: rockObj })
-root.addChild({ child: stump })
 
 const lightColor = new Vector4([1, 0.6, 0.2, 1])
-
-let camera = new Matrix4()
 
 let lastRenderTime = performance.now()
 const perfectFrameTime = 1000 / 60
@@ -221,12 +207,29 @@ export function GameCanvas() {
         )
     }
 
+    const createGameObjects = () => {
+        let flowerObj = new GameObject({ mesh: flowerModel })
+        flowerObj.translate({ v: new Vector3([2, 2, -1]) })
+        let treeObj = new GameObject({ mesh: tree1Model })
+        treeObj.addChild({ child: flowerObj })
+        treeObj.tick = (args: { deltaTime: number }) => {
+            treeObj.rotate({
+                angles: new Vector3([0, degToRad(args.deltaTime), 0]),
+            })
+        }
+        let rockObj = new GameObject({ mesh: rock1Model })
+        rockObj.translate({ v: new Vector3([-10, 0, -1]) })
+        let stump = new GameObject({ mesh: stumpModel })
+        stump.translate({ v: new Vector3([0, 0, 4]) })
+
+        root.addChild({ child: treeObj })
+        root.addChild({ child: rockObj })
+        root.addChild({ child: stump })
+    }
+
     const init = () => {
         if (gl) {
-            flowerObj.mesh = flowerModel
-            treeObj.mesh = tree1Model
-            rockObj.mesh = rock2Model
-            stump.mesh = stumpModel
+            createGameObjects()
             initMeshBuffers(gl, root)
 
             if ('requestPointerLock' in gl.canvas) {
@@ -402,7 +405,7 @@ export function GameCanvas() {
 
         if (keys.w || keys.s) {
             const direction = keys.w ? 1 : -1
-            cameraObj.translateLocal({
+            camera.translateLocal({
                 v: new Vector3([0, 0, -1]).multiplyScalar(
                     deltaTime * speed * direction
                 ),
@@ -411,7 +414,7 @@ export function GameCanvas() {
 
         if (keys.a || keys.d) {
             const direction = keys.d ? 1 : -1
-            cameraObj.translateLocal({
+            camera.translateLocal({
                 v: new Vector3([1, 0, 0]).multiplyScalar(
                     deltaTime * speed * direction
                 ),
@@ -424,7 +427,7 @@ export function GameCanvas() {
         let amtY = turnAmounts.y * deltaTime * turnSpeed
         turnAmounts.y -= amtY
 
-        cameraObj.rotate({
+        camera.rotate({
             angles: new Vector3([degToRad(amtX), degToRad(amtY), 0]),
         })
     }
@@ -516,9 +519,18 @@ export function GameCanvas() {
         }
     }
 
+    const tick = (deltaTime: number, gameObj: GameObject) => {
+        // execute logic
+        gameObj.tick({ deltaTime })
+        for (let child of gameObj.children) {
+            tick(deltaTime, child)
+        }
+    }
+
     const draw = () => {
         const now = performance.now()
         const deltaTime = (now - lastRenderTime) / perfectFrameTime
+        tick(deltaTime, root)
 
         const zNear = 0.1
         const zFar = 100
@@ -550,10 +562,8 @@ export function GameCanvas() {
                 far: zFar,
             })
 
-            camera = cameraObj.getTransform()
-
             // Make a view matrix from the camera matrix.
-            const view = camera.invert()
+            const view = camera.getTransform().clone().invert()
 
             // Draw skybox
             if (!skyboxProgram) {
@@ -606,7 +616,7 @@ export function GameCanvas() {
                 .clone()
                 .multiplyRight(
                     new Matrix4().fromQuaternion(
-                        cameraObj.orientation.clone().invert()
+                        camera.orientation.clone().invert()
                     )
                 )
             let viewDirectionProjectionInverseMatrix =
@@ -662,9 +672,6 @@ export function GameCanvas() {
 
             gl.enableVertexAttribArray(positionAttributeLocation)
             gl.enableVertexAttribArray(normalAttributeLocation)
-
-            treeObj.orientation.rotateY(degToRad(2) * deltaTime)
-            flowerObj.orientation.rotateY(degToRad(10) * deltaTime)
 
             renderRecursive(
                 gl,

@@ -1,3 +1,2 @@
-import { Light } from './Light'
-
-export { Light }
+import { DirectionalLight } from './DirectionalLight'
+export { DirectionalLight }

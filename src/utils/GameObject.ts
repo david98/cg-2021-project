@@ -6,7 +6,7 @@ import {
     Vector3,
     Vector4,
 } from '@math.gl/core'
-import { Mesh, MeshWithBuffers } from 'webgl-obj-loader'
+import { MeshWithBuffers } from 'webgl-obj-loader'
 
 export class GameObject {
     public position: Vector3 = new Vector3([0, 0, 0])
@@ -15,11 +15,11 @@ export class GameObject {
 
     public mesh?: MeshWithBuffers
 
-    public color: Vector4 = new Vector4([0, 0, 0, 0])
-
     public children: GameObject[] = []
 
-    constructor(args: {}) {}
+    constructor(args: { mesh?: MeshWithBuffers }) {
+        this.mesh = args.mesh
+    }
 
     public translateLocal(args: { v: Vector3 }) {
         this.position.add(
@@ -45,6 +45,8 @@ export class GameObject {
                 .normalize()
         }
     }
+
+    public tick(args: { deltaTime: number }) {}
 
     public getTransform(): Matrix4 {
         return new Matrix4()
