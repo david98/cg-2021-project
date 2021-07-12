@@ -39,11 +39,15 @@ export abstract class ShaderProgram {
         }
     }
 
-    public abstract render(args: {
+    public render(args: {
         gameObj: GameObject
         viewMatrix: Matrix4
         projMatrix: Matrix4
-    }): void
+    }): void {
+        throw new Error('render is not implemented')
+    }
 
-    public abstract setup(): void
+    public setup(): void {
+        throw new Error('setup is not implemented')
+    }
 }

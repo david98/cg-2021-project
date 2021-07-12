@@ -27,21 +27,16 @@ import { OBJ } from 'webgl-obj-loader'
 import { Euler, Matrix4, Vector3, Vector4 } from '@math.gl/core'
 import { GameObject } from '../utils/GameObject'
 import Camera from '../utils/Camera'
-import { ShaderProgram } from '../utils/ShaderProgram'
 import { EnvironmentShaderProgram } from '../utils/EnvironmentShaderProgram'
 
 let camera = new Camera({})
 let root = new GameObject({})
-
-const lightColor = new Vector4([1, 0.6, 0.2, 1])
 
 let lastRenderTime = performance.now()
 const perfectFrameTime = 1000 / 60
 
 let times: number[] = []
 let fps = 0
-const directionalLightDir = new Vector3([1, -1, -1])
-const pointLightPosition = new Vector3([10, 10, 0])
 let keys = {
     w: false,
     a: false,
@@ -61,12 +56,9 @@ let turnAmounts = {
 }
 
 // Shaders
-let vegetationVertexShader: WebGLShader | null | undefined = null
-let vegetationFragmentShader: WebGLShader | null | undefined = null
 let skyboxVertexShader: WebGLShader | null | undefined = null
 let skyboxFragmentShader: WebGLShader | null | undefined = null
 
-let vegetationProgram: WebGLProgram | null | undefined = null
 let skyboxProgram: WebGLProgram | null | undefined = null
 
 // Shaders Locations
@@ -76,12 +68,10 @@ let skyboxLocation: WebGLUniformLocation | null = null
 let skyboxViewDirectionProjectionInverseLocation: WebGLUniformLocation | null =
     null
 
-let pointLightWorldPositionLocation: WebGLUniformLocation | null = null
-let vegetationTexcoordAttributeLocation: number | null = null
-let vegetationTextureLocation: WebGLUniformLocation | null = null
-
 // Create a texture.
 let texture: WebGLTexture | null = null
+
+let environmentShaderProgram: EnvironmentShaderProgram | null = null
 
 export function GameCanvas() {
     const cRef = useRef<HTMLCanvasElement>(null)
@@ -163,8 +153,8 @@ export function GameCanvas() {
             // Upload the canvas to the cubemap face.
             const level = 0
             const internalFormat = gl.RGBA
-            const width = 512
-            const height = 512
+            const width = 2048
+            const height = 2048
             const format = gl.RGBA
             const type = gl.UNSIGNED_BYTE
 
@@ -274,38 +264,11 @@ export function GameCanvas() {
                 return
             }
 
-            vegetationVertexShader = createShader(
-                gl,
-                gl.VERTEX_SHADER,
-                sampleVertex
-            )
-            vegetationFragmentShader = createShader(
-                gl,
-                gl.FRAGMENT_SHADER,
-                sampleFragment
-            )
-
-            if (!vegetationVertexShader || !vegetationFragmentShader) {
-                console.error('Missing vegetation shaders')
-                return
-            }
-
-            const environmentShaderProgram = new EnvironmentShaderProgram({
+            environmentShaderProgram = new EnvironmentShaderProgram({
                 gl,
                 vertexShaderSource: sampleVertex,
                 fragmentShaderSource: sampleFragment,
             })
-
-            vegetationProgram = createProgram(
-                gl,
-                vegetationVertexShader,
-                vegetationFragmentShader
-            )
-
-            if (!vegetationProgram) {
-                console.error('Error while creating vegetation program')
-                return
-            }
 
             skyboxVAO = gl.createVertexArray()
             skyboxPositionLocation = gl.getAttribLocation(
@@ -320,19 +283,6 @@ export function GameCanvas() {
                 )
 
             loadSkybox(gl)
-
-            pointLightWorldPositionLocation = gl.getUniformLocation(
-                vegetationProgram,
-                'u_lightWorldPosition'
-            )
-            vegetationTexcoordAttributeLocation = gl.getAttribLocation(
-                vegetationProgram,
-                'a_texcoord'
-            )
-            vegetationTextureLocation = gl.getUniformLocation(
-                vegetationProgram,
-                'u_texture'
-            )
 
             texture = gl.createTexture()
             gl.activeTexture(gl.TEXTURE1)
@@ -438,93 +388,6 @@ export function GameCanvas() {
         camera.rotate({
             angles: new Vector3([degToRad(amtX), degToRad(amtY), 0]),
         })
-    }
-
-    const renderRecursive = (
-        gl: WebGL2RenderingContext,
-        program: WebGLProgram,
-        gameObj: GameObject,
-        positionAttributeLocation: number,
-        normalAttributeLocation: number,
-        worldMatLocation: WebGLUniformLocation | null,
-        parentTransform: Matrix4
-    ) => {
-        if (gameObj.mesh) {
-            if (worldMatLocation) {
-                const worldMat = gameObj.getTransform()
-                gl.uniformMatrix4fv(
-                    worldMatLocation,
-                    false,
-                    worldMat.multiplyRight(parentTransform)
-                )
-            }
-
-            const colorLocation = gl.getUniformLocation(program, 'u_lightColor')
-            gl.uniform4fv(colorLocation, lightColor)
-            gl.uniform1i(vegetationTextureLocation, 1)
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, gameObj.mesh.vertexBuffer)
-            gl.vertexAttribPointer(
-                positionAttributeLocation,
-                flowerModel.vertexBuffer.itemSize,
-                gl.FLOAT,
-                false,
-                0,
-                0
-            )
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, gameObj.mesh.normalBuffer)
-            gl.vertexAttribPointer(
-                normalAttributeLocation,
-                flowerModel.normalBuffer.itemSize,
-                gl.FLOAT,
-                false,
-                0,
-                0
-            )
-
-            if (!vegetationTexcoordAttributeLocation) {
-                console.error('')
-                return
-            }
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, gameObj.mesh.textureBuffer)
-            gl.enableVertexAttribArray(vegetationTexcoordAttributeLocation)
-            gl.vertexAttribPointer(
-                vegetationTexcoordAttributeLocation,
-                2,
-                gl.FLOAT,
-                true,
-                0,
-                0
-            )
-
-            let primitiveType = gl.TRIANGLES
-            let offset = 0
-
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gameObj.mesh.indexBuffer)
-            gl.activeTexture(gl.TEXTURE1)
-            gl.drawElements(
-                primitiveType,
-                gameObj.mesh.indexBuffer.numItems,
-                gl.UNSIGNED_SHORT,
-                offset
-            )
-        }
-
-        for (let child of gameObj.children) {
-            renderRecursive(
-                gl,
-                program,
-                child,
-                positionAttributeLocation,
-                normalAttributeLocation,
-                worldMatLocation,
-                new Matrix4()
-                    .fromQuaternion(gameObj.orientation)
-                    .translate(gameObj.position)
-            )
-        }
     }
 
     const tick = (deltaTime: number, gameObj: GameObject) => {
@@ -646,50 +509,14 @@ export function GameCanvas() {
             // Draw the geometry.
             gl.drawArrays(gl.TRIANGLES, 0, 6)
 
-            // Draw vegetation
-            if (!vegetationProgram) {
-                console.error('Vegetation program error')
-                return
+            // Draw environment
+            if (environmentShaderProgram) {
+                environmentShaderProgram.render({
+                    gameObj: root,
+                    viewMatrix: view,
+                    projMatrix: projMat,
+                })
             }
-            gl.useProgram(vegetationProgram)
-
-            let worldMatLoc = gl.getUniformLocation(
-                vegetationProgram,
-                'u_world'
-            )
-            let viewMatLoc = gl.getUniformLocation(vegetationProgram, 'u_view')
-            let projMatLoc = gl.getUniformLocation(vegetationProgram, 'u_proj')
-            let dirLightDirLoc = gl.getUniformLocation(
-                vegetationProgram,
-                'u_directionalLightDir'
-            )
-
-            gl.uniformMatrix4fv(viewMatLoc, false, view)
-            gl.uniformMatrix4fv(projMatLoc, false, projMat)
-            gl.uniform3fv(dirLightDirLoc, directionalLightDir)
-            gl.uniform3fv(pointLightWorldPositionLocation, pointLightPosition)
-
-            let positionAttributeLocation = gl.getAttribLocation(
-                vegetationProgram,
-                'a_position'
-            )
-            let normalAttributeLocation = gl.getAttribLocation(
-                vegetationProgram,
-                'a_normal'
-            )
-
-            gl.enableVertexAttribArray(positionAttributeLocation)
-            gl.enableVertexAttribArray(normalAttributeLocation)
-
-            renderRecursive(
-                gl,
-                vegetationProgram,
-                root,
-                positionAttributeLocation,
-                normalAttributeLocation,
-                worldMatLoc,
-                new Matrix4().identity()
-            )
             updateFPS()
             lastRenderTime = now
             window.requestAnimationFrame(draw)

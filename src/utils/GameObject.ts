@@ -15,7 +15,6 @@ export class GameObject {
     public scale: number = 1
 
     public mesh?: MeshWithBuffers
-    public program?: ShaderProgram
 
     public children: GameObject[] = []
 

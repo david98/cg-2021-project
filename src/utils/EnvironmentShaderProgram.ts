@@ -12,6 +12,7 @@ export class EnvironmentShaderProgram extends ShaderProgram {
     private viewMatrixLocation: WebGLUniformLocation | null
     private projMatrixLocation: WebGLUniformLocation | null
     private dirLightLocation: WebGLUniformLocation | null
+    private lightColorLocation: WebGLUniformLocation | null
 
     private texcoordAttributeLocation: number
     private positionAttributeLocation: number
@@ -30,6 +31,8 @@ export class EnvironmentShaderProgram extends ShaderProgram {
         }
 
         let gl = this.gl
+        gl.useProgram(this.glProgram)
+
         this.pointLightWorldPositionLocation = gl.getUniformLocation(
             this.glProgram,
             'u_lightWorldPosition'
@@ -53,6 +56,10 @@ export class EnvironmentShaderProgram extends ShaderProgram {
         this.dirLightLocation = gl.getUniformLocation(
             this.glProgram,
             'u_directionalLightDir'
+        )
+        this.lightColorLocation = gl.getUniformLocation(
+            this.glProgram,
+            'u_lightColor'
         )
 
         this.texcoordAttributeLocation = gl.getAttribLocation(
@@ -117,6 +124,7 @@ export class EnvironmentShaderProgram extends ShaderProgram {
     }) {
         if (args.gameObj.mesh) {
             let gl = this.gl
+            gl.useProgram(this.glProgram)
 
             const worldMat = args.gameObj.getTransform()
             gl.uniformMatrix4fv(
@@ -195,6 +203,7 @@ export class EnvironmentShaderProgram extends ShaderProgram {
             gl.uniformMatrix4fv(this.viewMatrixLocation, false, args.viewMatrix)
             gl.uniformMatrix4fv(this.projMatrixLocation, false, args.projMatrix)
             gl.uniform3fv(this.dirLightLocation, new Vector3([1, -1, -1]))
+            gl.uniform4fv(this.lightColorLocation, new Vector4([1, 0, 0, 1]))
             gl.uniform3fv(
                 this.pointLightWorldPositionLocation,
                 new Vector4([10, 10, 10, 1])
