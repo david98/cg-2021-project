@@ -1,33 +1,26 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {
+    load as loadShaders,
     sampleFragment,
     sampleVertex,
-    skyboxVertex,
     skyboxFragment,
-    load as loadShaders,
+    skyboxVertex,
 } from '../shaders'
-import negx from '../textures/skybox/negx.jpg'
-import negy from '../textures/skybox/negy.jpg'
-import negz from '../textures/skybox/negz.jpg'
-import posx from '../textures/skybox/posx.jpg'
-import posy from '../textures/skybox/posy.jpg'
-import posz from '../textures/skybox/posz.jpg'
-import textureImg from '../textures/texture.jpg'
 
 import {
     flowerModel,
-    tree1Model,
+    load as loadModels,
     rock1Model,
     stumpModel,
-    load as loadModels,
-    rock2Model,
+    tree1Model,
 } from '../models'
-import { createProgram, createShader, degToRad } from '../utils'
+import { degToRad } from '../utils'
 import { OBJ } from 'webgl-obj-loader'
-import { Euler, Matrix4, Vector3, Vector4 } from '@math.gl/core'
+import { Matrix4, Vector3 } from '@math.gl/core'
 import { GameObject } from '../utils/GameObject'
 import Camera from '../utils/Camera'
 import { EnvironmentShaderProgram } from '../utils/EnvironmentShaderProgram'
+import { SkyboxShaderProgram } from '../utils/SkyboxShaderProgram'
 
 let camera = new Camera({})
 let root = new GameObject({})
@@ -55,23 +48,8 @@ let turnAmounts = {
     y: 0,
 }
 
-// Shaders
-let skyboxVertexShader: WebGLShader | null | undefined = null
-let skyboxFragmentShader: WebGLShader | null | undefined = null
-
-let skyboxProgram: WebGLProgram | null | undefined = null
-
-// Shaders Locations
-let skyboxVAO: WebGLVertexArrayObject | null = null
-let skyboxPositionLocation: number | null = null
-let skyboxLocation: WebGLUniformLocation | null = null
-let skyboxViewDirectionProjectionInverseLocation: WebGLUniformLocation | null =
-    null
-
-// Create a texture.
-let texture: WebGLTexture | null = null
-
 let environmentShaderProgram: EnvironmentShaderProgram | null = null
+let skyboxShaderProgram: SkyboxShaderProgram | null = null
 
 export function GameCanvas() {
     const cRef = useRef<HTMLCanvasElement>(null)
@@ -116,89 +94,6 @@ export function GameCanvas() {
         }
     }
 
-    const loadSkybox = (gl: WebGL2RenderingContext) => {
-        // Create a texture.
-        let texture = gl.createTexture()
-        gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture)
-
-        const faceInfos = [
-            {
-                target: gl.TEXTURE_CUBE_MAP_POSITIVE_X,
-                url: posx,
-            },
-            {
-                target: gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
-                url: negx,
-            },
-            {
-                target: gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
-                url: posy,
-            },
-            {
-                target: gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
-                url: negy,
-            },
-            {
-                target: gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
-                url: posz,
-            },
-            {
-                target: gl.TEXTURE_CUBE_MAP_NEGATIVE_Z,
-                url: negz,
-            },
-        ]
-        faceInfos.forEach((faceInfo) => {
-            const { target, url } = faceInfo
-
-            // Upload the canvas to the cubemap face.
-            const level = 0
-            const internalFormat = gl.RGBA
-            const width = 2048
-            const height = 2048
-            const format = gl.RGBA
-            const type = gl.UNSIGNED_BYTE
-
-            // setup each face so it's immediately renderable
-            gl.activeTexture(gl.TEXTURE0)
-            gl.texImage2D(
-                target,
-                level,
-                internalFormat,
-                width,
-                height,
-                0,
-                format,
-                type,
-                null
-            )
-
-            // Asynchronously load an image
-            const image = new Image()
-            image.src = url
-            image.addEventListener('load', function () {
-                // Now that the image has loaded make copy it to the texture.
-                gl.activeTexture(gl.TEXTURE0)
-                gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture)
-                gl.texImage2D(
-                    target,
-                    level,
-                    internalFormat,
-                    format,
-                    type,
-                    image
-                )
-                gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false)
-                gl.generateMipmap(gl.TEXTURE_CUBE_MAP)
-            })
-        })
-        gl.generateMipmap(gl.TEXTURE_CUBE_MAP)
-        gl.texParameteri(
-            gl.TEXTURE_CUBE_MAP,
-            gl.TEXTURE_MIN_FILTER,
-            gl.LINEAR_MIPMAP_LINEAR
-        )
-    }
-
     const createGameObjects = () => {
         let flowerObj = new GameObject({ mesh: flowerModel })
         flowerObj.translate({ v: new Vector3([2, 2, -1]) })
@@ -237,105 +132,16 @@ export function GameCanvas() {
                 turnAmounts.y = -e.movementX
             })
 
-            skyboxVertexShader = createShader(
+            skyboxShaderProgram = new SkyboxShaderProgram({
                 gl,
-                gl.VERTEX_SHADER,
-                skyboxVertex
-            )
-            skyboxFragmentShader = createShader(
-                gl,
-                gl.FRAGMENT_SHADER,
-                skyboxFragment
-            )
-
-            if (!skyboxVertexShader || !skyboxFragmentShader) {
-                console.error('Missing skybox shaders')
-                return
-            }
-
-            skyboxProgram = createProgram(
-                gl,
-                skyboxVertexShader,
-                skyboxFragmentShader
-            )
-
-            if (!skyboxProgram) {
-                console.error('Error while creating skybox program')
-                return
-            }
+                vertexShaderSource: skyboxVertex,
+                fragmentShaderSource: skyboxFragment,
+            })
 
             environmentShaderProgram = new EnvironmentShaderProgram({
                 gl,
                 vertexShaderSource: sampleVertex,
                 fragmentShaderSource: sampleFragment,
-            })
-
-            skyboxVAO = gl.createVertexArray()
-            skyboxPositionLocation = gl.getAttribLocation(
-                skyboxProgram,
-                'a_position'
-            )
-            skyboxLocation = gl.getUniformLocation(skyboxProgram, 'u_skybox')
-            skyboxViewDirectionProjectionInverseLocation =
-                gl.getUniformLocation(
-                    skyboxProgram,
-                    'u_viewDirectionProjectionInverse'
-                )
-
-            loadSkybox(gl)
-
-            texture = gl.createTexture()
-            gl.activeTexture(gl.TEXTURE1)
-            gl.bindTexture(gl.TEXTURE_2D, texture)
-
-            gl.texImage2D(
-                gl.TEXTURE_2D,
-                0,
-                gl.RGBA,
-                1,
-                1,
-                0,
-                gl.RGBA,
-                gl.UNSIGNED_BYTE,
-                new Uint8Array([0, 0, 255, 255])
-            )
-
-            let image = new Image()
-            image.src = textureImg
-            image.addEventListener('load', function () {
-                // Now that the image has loaded make copy it to the texture.
-                gl.activeTexture(gl.TEXTURE1)
-                gl.bindTexture(gl.TEXTURE_2D, texture)
-                gl.texImage2D(
-                    gl.TEXTURE_2D,
-                    0,
-                    gl.RGBA,
-                    gl.RGBA,
-                    gl.UNSIGNED_BYTE,
-                    image
-                )
-                gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
-                gl.texParameteri(
-                    gl.TEXTURE_2D,
-                    gl.TEXTURE_MAG_FILTER,
-                    gl.LINEAR
-                )
-                gl.texParameteri(
-                    gl.TEXTURE_2D,
-                    gl.TEXTURE_MIN_FILTER,
-                    gl.LINEAR
-                )
-                gl.generateMipmap(gl.TEXTURE_2D)
-                gl.texParameteri(
-                    gl.TEXTURE_2D,
-                    gl.TEXTURE_WRAP_S,
-                    gl.CLAMP_TO_EDGE
-                )
-                gl.texParameteri(
-                    gl.TEXTURE_2D,
-                    gl.TEXTURE_WRAP_T,
-                    gl.CLAMP_TO_EDGE
-                )
             })
         }
     }
@@ -411,6 +217,8 @@ export function GameCanvas() {
             gl.enable(gl.DEPTH_TEST)
             gl.enable(gl.CULL_FACE)
 
+            gl.depthFunc(gl.LEQUAL)
+
             // Clear the canvas
             gl.clearColor(0, 0, 0, 1)
             gl.clear(gl.DEPTH_BUFFER_BIT)
@@ -437,77 +245,14 @@ export function GameCanvas() {
             const view = camera.getTransform().clone().invert()
 
             // Draw skybox
-            if (!skyboxProgram) {
-                console.error('Skybox program error')
-                return
-            }
-
-            gl.useProgram(skyboxProgram)
-
-            // and make it the one we're currently working with
-            gl.bindVertexArray(skyboxVAO)
-
-            // Create a buffer for positions
-            let positionBuffer = gl.createBuffer()
-            // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = positionBuffer)
-            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
-            // Put the positions in the buffer
-            let positions = new Float32Array([
-                -1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1,
-            ])
-            gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW)
-
-            if (skyboxPositionLocation === null) {
-                console.error('Skybox position location is null')
-                return
-            }
-
-            // Turn on the position attribute
-            gl.enableVertexAttribArray(skyboxPositionLocation)
-
-            // Bind the position buffer.
-            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer)
-
-            // Tell the position attribute how to get data out of positionBuffer (ARRAY_BUFFER)
-            let size = 2 // 2 components per iteration
-            let type = gl.FLOAT // the data is 32bit floats
-            let normalize = false // don't normalize the data
-            let stride = 0 // 0 = move forward size * sizeof(type) each iteration to get the next position
-            let offset = 0 // start at the beginning of the buffer
-            gl.vertexAttribPointer(
-                skyboxPositionLocation,
-                size,
-                type,
-                normalize,
-                stride,
-                offset
-            )
-
-            let viewDirectionProjectionMatrix = projMat
-                .clone()
-                .multiplyRight(
-                    new Matrix4().fromQuaternion(
+            if (skyboxShaderProgram) {
+                skyboxShaderProgram.render({
+                    viewMatrix: new Matrix4().fromQuaternion(
                         camera.orientation.clone().invert()
-                    )
-                )
-            let viewDirectionProjectionInverseMatrix =
-                viewDirectionProjectionMatrix.invert()
-
-            // Set the uniforms
-            gl.uniformMatrix4fv(
-                skyboxViewDirectionProjectionInverseLocation,
-                false,
-                viewDirectionProjectionInverseMatrix
-            )
-
-            // Tell the shader to use texture unit 0 for u_skybox
-            gl.uniform1i(skyboxLocation, 0)
-
-            // let our quad pass the depth test at 1.0
-            gl.depthFunc(gl.LEQUAL)
-
-            // Draw the geometry.
-            gl.drawArrays(gl.TRIANGLES, 0, 6)
+                    ),
+                    projMatrix: projMat,
+                })
+            }
 
             // Draw environment
             if (environmentShaderProgram) {
@@ -517,6 +262,7 @@ export function GameCanvas() {
                     projMatrix: projMat,
                 })
             }
+
             updateFPS()
             lastRenderTime = now
             window.requestAnimationFrame(draw)

@@ -1,6 +1,4 @@
 import { createProgram, createShader } from './index'
-import { GameObject } from './GameObject'
-import Camera from './Camera'
 import { Matrix4 } from '@math.gl/core'
 
 export abstract class ShaderProgram {
@@ -36,15 +34,13 @@ export abstract class ShaderProgram {
                 return
             }
             this.glProgram = program
+
+            this.gl.useProgram(this.glProgram)
         }
     }
 
-    public render(args: {
-        gameObj: GameObject
-        viewMatrix: Matrix4
-        projMatrix: Matrix4
-    }): void {
-        throw new Error('render is not implemented')
+    public render(args: { viewMatrix: Matrix4; projMatrix: Matrix4 }): void {
+        this.gl.useProgram(this.glProgram)
     }
 
     public setup(): void {

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react'
+import React from 'react'
 import './App.scss'
 import GameCanvas from './components/GameCanvas'
 

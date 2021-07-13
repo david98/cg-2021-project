@@ -1,9 +1,7 @@
 import { ShaderProgram } from './ShaderProgram'
 import { GameObject } from './GameObject'
 import textureImg from '../textures/texture.jpg'
-import Camera from './Camera'
 import { Matrix4, Vector3, Vector4 } from '@math.gl/core'
-import { flowerModel } from '../models'
 
 export class EnvironmentShaderProgram extends ShaderProgram {
     private pointLightWorldPositionLocation: WebGLUniformLocation | null
@@ -31,7 +29,6 @@ export class EnvironmentShaderProgram extends ShaderProgram {
         }
 
         let gl = this.gl
-        gl.useProgram(this.glProgram)
 
         this.pointLightWorldPositionLocation = gl.getUniformLocation(
             this.glProgram,
@@ -122,46 +119,54 @@ export class EnvironmentShaderProgram extends ShaderProgram {
         gameObj: GameObject
         parentTransform: Matrix4
     }) {
+        let gl = this.gl
+        gl.useProgram(this.glProgram)
+        this.debug()
+
+        const worldMat = args.gameObj.getTransform()
+        gl.uniformMatrix4fv(
+            this.worldMatrixLocation,
+            false,
+            worldMat.multiplyRight(args.parentTransform)
+        )
+        this.debug()
+
         if (args.gameObj.mesh) {
-            let gl = this.gl
-            gl.useProgram(this.glProgram)
-
-            const worldMat = args.gameObj.getTransform()
-            gl.uniformMatrix4fv(
-                this.worldMatrixLocation,
-                false,
-                worldMat.multiplyRight(args.parentTransform)
-            )
-
             gl.bindBuffer(gl.ARRAY_BUFFER, args.gameObj.mesh.vertexBuffer)
+            this.debug()
             gl.vertexAttribPointer(
                 this.positionAttributeLocation,
-                flowerModel.vertexBuffer.itemSize,
+                args.gameObj.mesh.vertexBuffer.itemSize,
                 gl.FLOAT,
                 false,
                 0,
                 0
             )
+            this.debug()
 
             gl.bindBuffer(gl.ARRAY_BUFFER, args.gameObj.mesh.normalBuffer)
+            this.debug()
             gl.vertexAttribPointer(
                 this.normalAttributeLocation,
-                flowerModel.normalBuffer.itemSize,
+                args.gameObj.mesh.normalBuffer.itemSize,
                 gl.FLOAT,
                 false,
                 0,
                 0
             )
+            this.debug()
 
             gl.bindBuffer(gl.ARRAY_BUFFER, args.gameObj.mesh.textureBuffer)
+            this.debug()
             gl.vertexAttribPointer(
                 this.texcoordAttributeLocation,
-                2,
+                args.gameObj.mesh.textureBuffer.itemSize,
                 gl.FLOAT,
                 true,
                 0,
                 0
             )
+            this.debug()
 
             let primitiveType = gl.TRIANGLES
             let offset = 0
@@ -170,13 +175,16 @@ export class EnvironmentShaderProgram extends ShaderProgram {
                 gl.ELEMENT_ARRAY_BUFFER,
                 args.gameObj.mesh.indexBuffer
             )
+            this.debug()
             gl.activeTexture(gl.TEXTURE1)
+            this.debug()
             gl.drawElements(
                 primitiveType,
                 args.gameObj.mesh.indexBuffer.numItems,
                 gl.UNSIGNED_SHORT,
                 offset
             )
+            this.debug()
         }
 
         for (let child of args.gameObj.children) {
@@ -189,81 +197,37 @@ export class EnvironmentShaderProgram extends ShaderProgram {
         }
     }
 
+    private debug() {
+        let err = this.gl.getError()
+        if (err !== 0) {
+            console.log(err)
+        }
+    }
+
     public render(args: {
         gameObj: GameObject
         viewMatrix: Matrix4
         projMatrix: Matrix4
     }) {
-        if (args.gameObj.mesh) {
-            let gl = this.gl
-            gl.useProgram(this.glProgram)
+        let gl = this.gl
+        gl.useProgram(this.glProgram)
 
-            const worldMat = args.gameObj.getTransform()
-            gl.uniformMatrix4fv(this.worldMatrixLocation, false, worldMat)
-            gl.uniformMatrix4fv(this.viewMatrixLocation, false, args.viewMatrix)
-            gl.uniformMatrix4fv(this.projMatrixLocation, false, args.projMatrix)
-            gl.uniform3fv(this.dirLightLocation, new Vector3([1, -1, -1]))
-            gl.uniform4fv(this.lightColorLocation, new Vector4([1, 0, 0, 1]))
-            gl.uniform3fv(
-                this.pointLightWorldPositionLocation,
-                new Vector4([10, 10, 10, 1])
-            )
-            gl.uniform1i(this.textureLocation, 1)
+        const worldMat = args.gameObj.getTransform()
+        gl.uniformMatrix4fv(this.worldMatrixLocation, false, worldMat)
+        gl.uniformMatrix4fv(this.viewMatrixLocation, false, args.viewMatrix)
+        gl.uniformMatrix4fv(this.projMatrixLocation, false, args.projMatrix)
+        gl.uniform3fv(this.dirLightLocation, new Vector3([1, -1, -1]))
+        gl.uniform4fv(this.lightColorLocation, new Vector4([1, 0, 0, 1]))
+        gl.uniform3fv(
+            this.pointLightWorldPositionLocation,
+            new Vector3([10, 10, 10])
+        )
+        gl.uniform1i(this.textureLocation, 1)
 
-            gl.bindBuffer(gl.ARRAY_BUFFER, args.gameObj.mesh.vertexBuffer)
-            gl.vertexAttribPointer(
-                this.positionAttributeLocation,
-                flowerModel.vertexBuffer.itemSize,
-                gl.FLOAT,
-                false,
-                0,
-                0
-            )
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, args.gameObj.mesh.normalBuffer)
-            gl.vertexAttribPointer(
-                this.normalAttributeLocation,
-                flowerModel.normalBuffer.itemSize,
-                gl.FLOAT,
-                false,
-                0,
-                0
-            )
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, args.gameObj.mesh.textureBuffer)
-            gl.vertexAttribPointer(
-                this.texcoordAttributeLocation,
-                2,
-                gl.FLOAT,
-                true,
-                0,
-                0
-            )
-
-            let primitiveType = gl.TRIANGLES
-            let offset = 0
-
-            gl.bindBuffer(
-                gl.ELEMENT_ARRAY_BUFFER,
-                args.gameObj.mesh.indexBuffer
-            )
-            gl.activeTexture(gl.TEXTURE1)
-            gl.drawElements(
-                primitiveType,
-                args.gameObj.mesh.indexBuffer.numItems,
-                gl.UNSIGNED_SHORT,
-                offset
-            )
-        }
-
-        for (let child of args.gameObj.children) {
-            this.renderRecursive({
-                gameObj: child,
-                parentTransform: new Matrix4()
-                    .fromQuaternion(args.gameObj.orientation)
-                    .translate(args.gameObj.position),
-            })
-        }
+        this.renderRecursive({
+            gameObj: args.gameObj,
+            parentTransform: new Matrix4().identity(),
+        })
     }
 
     public setup() {}
