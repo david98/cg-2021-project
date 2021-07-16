@@ -217,7 +217,8 @@ export function GameCanvas() {
         turnAmounts.y -= amtY
 
         camera.rotate({
-            angles: new Vector3([degToRad(amtX), degToRad(amtY), 0]),
+            angles: new Vector3([degToRad(amtY), 0, degToRad(amtX)]),
+            bounds: new Vector3([degToRad(80), degToRad(360), degToRad(0)]),
         })
     }
 

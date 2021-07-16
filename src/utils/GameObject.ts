@@ -1,4 +1,4 @@
-import { Matrix4, Quaternion, Vector3 } from '@math.gl/core'
+import { Euler, Matrix4, Quaternion, Vector3 } from '@math.gl/core'
 import { MeshWithBuffers } from 'webgl-obj-loader'
 
 export class GameObject {
@@ -26,18 +26,19 @@ export class GameObject {
         this.position.add(args.v)
     }
 
-    public rotate(args: { angles: Vector3 }) {
+    public rotate(args: { angles?: Vector3; quaternion?: Quaternion }) {
         if (args.angles) {
-            let qX = new Quaternion()
-                .fromAxisRotation(new Vector3([1, 0, 0]), args.angles.x)
-                .normalize()
-            let qY = new Quaternion()
-                .fromAxisRotation(new Vector3([0, 1, 0]), args.angles.y)
-                .normalize()
-            let rot = qY.multiplyLeft(qX, undefined).normalize()
+            let euler = new Euler().fromVector3(args.angles, Euler.XYZ)
             this.orientation = this.orientation
-                .multiplyRight(rot, undefined)
+                .multiplyRight(euler.toQuaternion(), undefined)
                 .normalize()
+        }
+
+        if (args.quaternion) {
+            this.orientation = this.orientation.multiplyRight(
+                args.quaternion,
+                undefined
+            )
         }
     }
 
