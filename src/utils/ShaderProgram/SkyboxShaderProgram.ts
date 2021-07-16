@@ -1,10 +1,10 @@
 import { ShaderProgram } from './ShaderProgram'
-import posx from '../textures/skybox/posx.jpg'
-import negx from '../textures/skybox/negx.jpg'
-import posy from '../textures/skybox/posy.jpg'
-import negy from '../textures/skybox/negy.jpg'
-import posz from '../textures/skybox/posz.jpg'
-import negz from '../textures/skybox/negz.jpg'
+import posx from '../../textures/skybox/posx.jpg'
+import negx from '../../textures/skybox/negx.jpg'
+import posy from '../../textures/skybox/posy.jpg'
+import negy from '../../textures/skybox/negy.jpg'
+import posz from '../../textures/skybox/posz.jpg'
+import negz from '../../textures/skybox/negz.jpg'
 import { Matrix4 } from '@math.gl/core'
 
 export class SkyboxShaderProgram extends ShaderProgram {
@@ -128,6 +128,10 @@ export class SkyboxShaderProgram extends ShaderProgram {
             'a_position'
         )
 
+        for (let i = 0; i < 16; i++) {
+            gl.disableVertexAttribArray(i)
+        }
+
         gl.enableVertexAttribArray(this.positionAttributeLocation)
 
         // Tell the shader to use texture unit 0 for u_skybox
@@ -144,6 +148,36 @@ export class SkyboxShaderProgram extends ShaderProgram {
         gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW)
 
         this.loadSkybox()
+    }
+
+    protected updateLocations() {
+        super.updateLocations()
+        let gl = this.gl
+
+        if (this.glProgram) {
+            this.textureLocation = gl.getUniformLocation(
+                this.glProgram,
+                'u_skybox'
+            )
+
+            this.viewDirectionProjectionInverseLocation = gl.getUniformLocation(
+                this.glProgram,
+                'u_viewDirectionProjectionInverse'
+            )
+
+            this.positionAttributeLocation = gl.getAttribLocation(
+                this.glProgram,
+                'a_position'
+            )
+
+            gl.enableVertexAttribArray(this.positionAttributeLocation)
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer)
+            let positions = new Float32Array([
+                -1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1,
+            ])
+            gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW)
+        }
     }
 
     public render(args: { viewMatrix: Matrix4; projMatrix: Matrix4 }) {

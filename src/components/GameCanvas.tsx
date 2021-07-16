@@ -19,8 +19,12 @@ import { OBJ } from 'webgl-obj-loader'
 import { Matrix4, Vector3 } from '@math.gl/core'
 import { GameObject } from '../utils/GameObject'
 import Camera from '../utils/Camera'
-import { EnvironmentShaderProgram } from '../utils/EnvironmentShaderProgram'
-import { SkyboxShaderProgram } from '../utils/SkyboxShaderProgram'
+import {
+    EnvironmentShaderProgram,
+    SkyboxShaderProgram,
+} from '../utils/ShaderProgram'
+import crosshair from '../textures/crosshair.png'
+import { Bird } from '../utils/Bird'
 
 let camera = new Camera({})
 let root = new GameObject({})
@@ -47,6 +51,9 @@ let turnAmounts = {
     x: 0,
     y: 0,
 }
+// mouseX and mouseY are in CSS display space relative to canvas
+let mouseX = -1
+let mouseY = -1
 
 let environmentShaderProgram: EnvironmentShaderProgram | null = null
 let skyboxShaderProgram: SkyboxShaderProgram | null = null
@@ -95,23 +102,35 @@ export function GameCanvas() {
     }
 
     const createGameObjects = () => {
+        if (!gl) {
+            return
+        }
         let flowerObj = new GameObject({ mesh: flowerModel })
+        flowerObj.textureSlot = gl.TEXTURE1
         flowerObj.translate({ v: new Vector3([2, 2, -1]) })
         let treeObj = new GameObject({ mesh: tree1Model })
         treeObj.addChild({ child: flowerObj })
+        treeObj.textureSlot = gl.TEXTURE1
         treeObj.tick = (args: { deltaTime: number }) => {
             treeObj.rotate({
                 angles: new Vector3([0, degToRad(args.deltaTime), 0]),
             })
         }
+        treeObj.translate({ v: new Vector3([4, 0, -1]) })
         let rockObj = new GameObject({ mesh: rock1Model })
+        rockObj.textureSlot = gl.TEXTURE1
         rockObj.translate({ v: new Vector3([-10, 0, -1]) })
         let stump = new GameObject({ mesh: stumpModel })
+        stump.textureSlot = gl.TEXTURE1
         stump.translate({ v: new Vector3([0, 0, 4]) })
+        let bird = new Bird()
+        bird.textureSlot = gl.TEXTURE2
+        bird.translate({ v: new Vector3([0, 5, 0]) })
 
         root.addChild({ child: treeObj })
         root.addChild({ child: rockObj })
         root.addChild({ child: stump })
+        root.addChild({ child: bird })
     }
 
     const init = () => {
@@ -130,6 +149,12 @@ export function GameCanvas() {
             gl.canvas.addEventListener('mousemove', (e: any) => {
                 turnAmounts.x = -e.movementY
                 turnAmounts.y = -e.movementX
+
+                if ('getBoundingClientRect' in gl.canvas) {
+                    const rect = gl.canvas.getBoundingClientRect()
+                    mouseX = e.clientX - rect.left
+                    mouseY = e.clientY - rect.top
+                }
             })
 
             skyboxShaderProgram = new SkyboxShaderProgram({
@@ -244,21 +269,21 @@ export function GameCanvas() {
             // Make a view matrix from the camera matrix.
             const view = camera.getTransform().clone().invert()
 
+            // Draw environment
+            if (environmentShaderProgram) {
+                environmentShaderProgram.render({
+                    gameObj: root,
+                    viewMatrix: view,
+                    projMatrix: projMat,
+                })
+            }
+
             // Draw skybox
             if (skyboxShaderProgram) {
                 skyboxShaderProgram.render({
                     viewMatrix: new Matrix4().fromQuaternion(
                         camera.orientation.clone().invert()
                     ),
-                    projMatrix: projMat,
-                })
-            }
-
-            // Draw environment
-            if (environmentShaderProgram) {
-                environmentShaderProgram.render({
-                    gameObj: root,
-                    viewMatrix: view,
                     projMatrix: projMat,
                 })
             }
@@ -286,6 +311,7 @@ export function GameCanvas() {
         <React.Fragment>
             <canvas id="c" ref={cRef}></canvas>
             <span id="framerate" ref={framerateRef}></span>
+            <img id="crosshair" src={crosshair} />
         </React.Fragment>
     )
 }

@@ -10,6 +10,8 @@ export class GameObject {
 
     public children: GameObject[] = []
 
+    public textureSlot: number = 0
+
     constructor(args: { mesh?: MeshWithBuffers }) {
         this.mesh = args.mesh
     }
