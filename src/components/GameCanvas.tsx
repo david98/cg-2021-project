@@ -5,6 +5,8 @@ import {
     sampleVertex,
     skyboxFragment,
     skyboxVertex,
+    terrainVertex,
+    terrainFragment,
 } from '../shaders'
 
 import {
@@ -25,6 +27,7 @@ import {
 } from '../utils/ShaderProgram'
 import crosshair from '../textures/crosshair.png'
 import { Bird } from '../utils/Bird'
+import { TerrainShaderProgram } from '../utils/ShaderProgram/TerrainShaderProgram'
 
 let camera = new Camera({})
 let root = new GameObject({})
@@ -57,6 +60,7 @@ let mouseY = -1
 
 let environmentShaderProgram: EnvironmentShaderProgram | null = null
 let skyboxShaderProgram: SkyboxShaderProgram | null = null
+let terrainShaderProgram: TerrainShaderProgram | null = null
 
 export function GameCanvas() {
     const cRef = useRef<HTMLCanvasElement>(null)
@@ -101,7 +105,7 @@ export function GameCanvas() {
         }
     }
 
-    const createGameObjects = () => {
+    const createGameObjects = (args: {}) => {
         if (!gl) {
             return
         }
@@ -135,7 +139,7 @@ export function GameCanvas() {
 
     const init = () => {
         if (gl) {
-            createGameObjects()
+            createGameObjects({})
             initMeshBuffers(gl, root)
 
             if ('requestPointerLock' in gl.canvas) {
@@ -167,6 +171,12 @@ export function GameCanvas() {
                 gl,
                 vertexShaderSource: sampleVertex,
                 fragmentShaderSource: sampleFragment,
+            })
+
+            terrainShaderProgram = new TerrainShaderProgram({
+                gl,
+                vertexShaderSource: terrainVertex,
+                fragmentShaderSource: terrainFragment,
             })
         }
     }
@@ -217,7 +227,7 @@ export function GameCanvas() {
         turnAmounts.y -= amtY
 
         camera.rotate({
-            angles: new Vector3([degToRad(amtY), 0, degToRad(amtX)]),
+            angles: new Vector3([degToRad(amtY), degToRad(amtX), 0]),
             bounds: new Vector3([degToRad(80), degToRad(360), degToRad(0)]),
         })
     }
@@ -274,6 +284,14 @@ export function GameCanvas() {
             if (environmentShaderProgram) {
                 environmentShaderProgram.render({
                     gameObj: root,
+                    viewMatrix: view,
+                    projMatrix: projMat,
+                })
+            }
+
+            // Draw terrain
+            if (terrainShaderProgram) {
+                terrainShaderProgram.render({
                     viewMatrix: view,
                     projMatrix: projMat,
                 })

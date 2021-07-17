@@ -12,8 +12,20 @@ export class Camera extends GameObject {
         this.yaw = (this.yaw + args.angles.y) % (2 * Math.PI)
         this.pitch = (this.pitch + args.angles.x) % (2 * Math.PI)
 
+        if (args.bounds) {
+            if (this.yaw > Math.abs(args.bounds.x)) {
+                this.yaw = Math.abs(args.bounds.x)
+            }
+            if (this.yaw < -Math.abs(args.bounds.x)) {
+                this.yaw = -Math.abs(args.bounds.x)
+            }
+        }
+
         // TODO: fix this shit
-        let temp = new Euler().fromRollPitchYaw(this.roll, this.pitch, this.yaw)
+        let temp = new Euler().fromVector3(
+            new Vector3([this.yaw, this.pitch, this.roll]),
+            Euler.YXZ
+        )
 
         this.orientation = temp.toQuaternion().normalize()
     }
