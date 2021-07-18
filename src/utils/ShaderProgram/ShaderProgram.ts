@@ -46,6 +46,8 @@ export abstract class ShaderProgram {
         src: string
         target: WebGLTexture | null
         slot: number
+        useAnisotropicFiltering?: boolean
+        dontClamp?: boolean
     }): void {
         let gl = this.gl
         gl.activeTexture(args.slot)
@@ -78,11 +80,49 @@ export abstract class ShaderProgram {
                 image
             )
             gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true)
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+            if (args.useAnisotropicFiltering) {
+                let ext =
+                    gl.getExtension('EXT_texture_filter_anisotropic') ||
+                    gl.getExtension('MOZ_EXT_texture_filter_anisotropic') ||
+                    gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic')
+                if (ext) {
+                    let max = gl.getParameter(
+                        ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT
+                    )
+                    gl.texParameterf(
+                        gl.TEXTURE_2D,
+                        ext.TEXTURE_MAX_ANISOTROPY_EXT,
+                        max
+                    )
+                }
+            } else {
+                gl.texParameteri(
+                    gl.TEXTURE_2D,
+                    gl.TEXTURE_MAG_FILTER,
+                    gl.LINEAR
+                )
+                gl.texParameteri(
+                    gl.TEXTURE_2D,
+                    gl.TEXTURE_MIN_FILTER,
+                    gl.LINEAR
+                )
+            }
             gl.generateMipmap(gl.TEXTURE_2D)
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+            if (args.dontClamp) {
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
+            } else {
+                gl.texParameteri(
+                    gl.TEXTURE_2D,
+                    gl.TEXTURE_WRAP_S,
+                    gl.CLAMP_TO_EDGE
+                )
+                gl.texParameteri(
+                    gl.TEXTURE_2D,
+                    gl.TEXTURE_WRAP_T,
+                    gl.CLAMP_TO_EDGE
+                )
+            }
         })
     }
 

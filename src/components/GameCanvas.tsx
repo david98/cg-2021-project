@@ -246,7 +246,7 @@ export function GameCanvas() {
         tick(deltaTime, root)
 
         const zNear = 0.1
-        const zFar = 100
+        const zFar = 500
         const fovRadians = degToRad(60)
 
         if (gl) {
