@@ -1,7 +1,9 @@
 import { ShaderProgram } from './ShaderProgram'
-import { Matrix4 } from '@math.gl/core'
+import { Matrix4, Vector3 } from '@math.gl/core'
 
 import diffuse from '../../textures/terrain/diffuse.png'
+import displacement from '../../textures/terrain/displacement.png'
+import normal from '../../textures/terrain/normal.png'
 
 export class TerrainShaderProgram extends ShaderProgram {
     private vertices: number[]
@@ -18,8 +20,14 @@ export class TerrainShaderProgram extends ShaderProgram {
     private viewMatrixLocation: WebGLUniformLocation | null
     private projMatrixLocation: WebGLUniformLocation | null
     private diffuseLocation: WebGLUniformLocation | null
+    private displacementLocation: WebGLUniformLocation | null
+    private normalLocation: WebGLUniformLocation | null
+    private dirLightLocation: WebGLUniformLocation | null
+    private pointLightWorldPositionLocation: WebGLUniformLocation | null
 
     private diffuse: WebGLTexture | null
+    private displacement: WebGLTexture | null
+    private normal: WebGLTexture | null
 
     constructor(args: {
         gl: WebGL2RenderingContext
@@ -111,6 +119,19 @@ export class TerrainShaderProgram extends ShaderProgram {
             this.glProgram,
             'u_diffuse'
         )
+        this.displacementLocation = gl.getUniformLocation(
+            this.glProgram,
+            'u_displacement'
+        )
+        this.normalLocation = gl.getUniformLocation(this.glProgram, 'u_normal')
+        this.dirLightLocation = gl.getUniformLocation(
+            this.glProgram,
+            'u_directionalLightDir'
+        )
+        this.pointLightWorldPositionLocation = gl.getUniformLocation(
+            this.glProgram,
+            'u_lightWorldPosition'
+        )
 
         this.diffuse = gl.createTexture()
         this.loadTexture({
@@ -118,6 +139,20 @@ export class TerrainShaderProgram extends ShaderProgram {
             slot: gl.TEXTURE3,
             target: this.diffuse,
             useAnisotropicFiltering: true,
+            dontClamp: true,
+        })
+        this.displacement = gl.createTexture()
+        this.loadTexture({
+            src: displacement,
+            slot: gl.TEXTURE4,
+            target: this.displacement,
+            dontClamp: true,
+        })
+        this.normal = gl.createTexture()
+        this.loadTexture({
+            src: displacement,
+            slot: gl.TEXTURE5,
+            target: this.normal,
             dontClamp: true,
         })
     }
@@ -158,6 +193,14 @@ export class TerrainShaderProgram extends ShaderProgram {
         )
 
         gl.uniform1i(this.diffuseLocation, 3)
+        gl.uniform1i(this.displacementLocation, 4)
+        gl.uniform1i(this.normalLocation, 5)
+        gl.uniform3fv(this.dirLightLocation, new Vector3([1, -1, -1]))
+        gl.uniform3fv(
+            this.pointLightWorldPositionLocation,
+            new Vector3([10, 10, 10])
+        )
+
         // Draw the geometry.
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer)
         gl.drawElements(gl.TRIANGLES, this.indices.length, gl.UNSIGNED_SHORT, 0)

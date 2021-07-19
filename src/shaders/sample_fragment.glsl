@@ -23,6 +23,20 @@ void main() {
     vec3 dirLightDir = normalize(mat3(fs_camera_mat) * -u_directionalLightDir);
     float light = dot(normal, dirLightDir) + dot(normal, v_surfaceToLight);
 
-    outColor = clamp(light, 0.0, 1.0) * u_lightColor + texture(u_texture, v_texcoord); // TODO: add shadow color
-    // outColor = vec4(1, 0, 0, 1);
+    float targetDistance = 10.0f;
+    float decayFactor = 1.0f;
+    vec4 lightColor = vec4(1.0, 0.5, 0.0, 1.0);
+    float r = length(v_surfaceToLight);
+    /*
+      * CryEngine and Frostbite clamp the distance from the light source to a minimum which is
+     * usually the diameter of the light source
+     */
+    float decayAmount = pow(targetDistance / max(r, .5f), decayFactor);
+    /*
+     * The windowing function gracefully cuts off light at rmax
+     */
+    float fWin = pow(max((1.0f - pow((r / (targetDistance * 10.0f)), 4.0f)), 0.0f), 2.0f);
+
+    outColor = texture(u_texture, v_texcoord) + lightColor * decayAmount * fWin + clamp(dot(normal, dirLightDir), 0.0f, 1.0f) * lightColor;
+    outColor.w = 1.0f;
 }

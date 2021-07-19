@@ -126,7 +126,7 @@ export function GameCanvas() {
         rockObj.translate({ v: new Vector3([-10, 0, -1]) })
         let stump = new GameObject({ mesh: stumpModel })
         stump.textureSlot = gl.TEXTURE1
-        stump.translate({ v: new Vector3([0, 0, 4]) })
+        stump.translate({ v: new Vector3([0, 0.2, 4]) })
         let bird = new Bird()
         bird.textureSlot = gl.TEXTURE2
         bird.translate({ v: new Vector3([0, 5, 0]) })
