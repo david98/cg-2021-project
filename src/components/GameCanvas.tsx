@@ -173,6 +173,7 @@ export function GameCanvas() {
 
                         if (b * b - c >= 0) {
                             console.log('collision')
+                            gameObj.onClick()
                         } else {
                             console.log('no collision')
                         }

@@ -11,4 +11,9 @@ export class Bird extends GameObject {
         super.tick(args)
         // this.translateLocal({ v: new Vector3([0, 0, args.deltaTime / 100]) })
     }
+
+    onClick() {
+        super.onClick()
+        alert('You win!')
+    }
 }

@@ -56,4 +56,6 @@ export class GameObject {
     public addChild(args: { child: GameObject }) {
         this.children.push(args.child)
     }
+
+    public onClick() {}
 }
