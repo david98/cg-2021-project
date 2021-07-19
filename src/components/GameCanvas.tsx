@@ -62,6 +62,8 @@ let environmentShaderProgram: EnvironmentShaderProgram | null = null
 let skyboxShaderProgram: SkyboxShaderProgram | null = null
 let terrainShaderProgram: TerrainShaderProgram | null = null
 
+let initialized = false
+
 export function GameCanvas() {
     const cRef = useRef<HTMLCanvasElement>(null)
     const framerateRef = useRef<HTMLSpanElement>(null)
@@ -106,7 +108,7 @@ export function GameCanvas() {
     }
 
     const createGameObjects = (args: {}) => {
-        if (!gl) {
+        if (!gl || initialized) {
             return
         }
         let flowerObj = new GameObject({ mesh: flowerModel })
@@ -127,7 +129,7 @@ export function GameCanvas() {
         let stump = new GameObject({ mesh: stumpModel })
         stump.textureSlot = gl.TEXTURE1
         stump.translate({ v: new Vector3([0, 0.2, 4]) })
-        let bird = new Bird()
+        let bird = new Bird({ intersectionRadius: 0.5 })
         bird.textureSlot = gl.TEXTURE2
         bird.translate({ v: new Vector3([0, 5, 0]) })
 
@@ -135,6 +137,13 @@ export function GameCanvas() {
         root.addChild({ child: rockObj })
         root.addChild({ child: stump })
         root.addChild({ child: bird })
+    }
+
+    const printScene = (gameObj: GameObject) => {
+        console.log(gameObj)
+        for (let child of gameObj.children) {
+            printScene(child)
+        }
     }
 
     const init = () => {
@@ -145,21 +154,62 @@ export function GameCanvas() {
             if ('requestPointerLock' in gl.canvas) {
                 gl.canvas.requestPointerLock()
             }
-            gl.canvas.addEventListener('click', () => {
-                if ('requestPointerLock' in gl.canvas) {
-                    gl.canvas.requestPointerLock()
-                }
-            })
-            gl.canvas.addEventListener('mousemove', (e: any) => {
-                turnAmounts.x = -e.movementY
-                turnAmounts.y = -e.movementX
+            const onCanvasClick = () => {
+                const checkIntersection = (
+                    gameObj: GameObject,
+                    rayDir: Vector3
+                ) => {
+                    if (gameObj.intersectionRadius > 0) {
+                        let origin = new Vector3([0, 0, 0])
+                        let center = gameObj.position
+                            .clone()
+                            .transform(camera.getTransform().clone().invert())
+                        let radius = gameObj.intersectionRadius
 
-                if ('getBoundingClientRect' in gl.canvas) {
-                    const rect = gl.canvas.getBoundingClientRect()
-                    mouseX = e.clientX - rect.left
-                    mouseY = e.clientY - rect.top
+                        let distance = origin.sub(center)
+
+                        let b = rayDir.dot(distance)
+                        let c = distance.dot(distance) - radius * radius
+
+                        if (b * b - c >= 0) {
+                            console.log('collision')
+                        } else {
+                            console.log('no collision')
+                        }
+                    }
+
+                    for (let child of gameObj.children) {
+                        checkIntersection(child, rayDir)
+                    }
                 }
-            })
+                if (
+                    'requestPointerLock' in gl.canvas &&
+                    document.pointerLockElement !== gl.canvas
+                ) {
+                    gl.canvas.requestPointerLock()
+                } else if (document.pointerLockElement === gl.canvas) {
+                    const rayDir = new Vector3([0, 0, -1])
+                    console.log('raycast')
+                    checkIntersection(root, rayDir)
+                }
+            }
+            if (!initialized) gl.canvas.addEventListener('click', onCanvasClick)
+
+            const onMouseMove = (e: any) => {
+                if (document.pointerLockElement === gl.canvas) {
+                    turnAmounts.x = -e.movementY
+                    turnAmounts.y = -e.movementX
+
+                    if ('getBoundingClientRect' in gl.canvas) {
+                        const rect = gl.canvas.getBoundingClientRect()
+                        mouseX = e.clientX - rect.left
+                        mouseY = e.clientY - rect.top
+                    }
+                }
+            }
+
+            if (!initialized)
+                gl.canvas.addEventListener('mousemove', onMouseMove)
 
             skyboxShaderProgram = new SkyboxShaderProgram({
                 gl,
@@ -178,6 +228,8 @@ export function GameCanvas() {
                 vertexShaderSource: terrainVertex,
                 fragmentShaderSource: terrainFragment,
             })
+
+            initialized = true
         }
     }
 

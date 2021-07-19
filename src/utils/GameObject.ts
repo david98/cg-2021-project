@@ -5,6 +5,7 @@ export class GameObject {
     public position: Vector3 = new Vector3([0, 0, 0])
     public orientation: Quaternion = new Quaternion().identity()
     public scale: number = 1
+    public intersectionRadius: number = 0
 
     public mesh?: MeshWithBuffers
 
@@ -12,8 +13,9 @@ export class GameObject {
 
     public textureSlot: number = 0
 
-    constructor(args: { mesh?: MeshWithBuffers }) {
+    constructor(args: { mesh?: MeshWithBuffers; intersectionRadius?: number }) {
         this.mesh = args.mesh
+        this.intersectionRadius = args.intersectionRadius || 0
     }
 
     public translateLocal(args: { v: Vector3 }) {

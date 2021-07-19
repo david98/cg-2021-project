@@ -3,8 +3,8 @@ import { birdModel } from '../models'
 import { Vector3 } from '@math.gl/core'
 
 export class Bird extends GameObject {
-    constructor() {
-        super({ mesh: birdModel })
+    constructor(args: { intersectionRadius?: number }) {
+        super({ mesh: birdModel, intersectionRadius: args.intersectionRadius })
     }
 
     tick(args: { deltaTime: number }) {
