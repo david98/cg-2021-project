@@ -48,6 +48,7 @@ export abstract class ShaderProgram {
         slot: number
         useAnisotropicFiltering?: boolean
         dontClamp?: boolean
+        dontGenerateMipmaps?: boolean
     }): void {
         let gl = this.gl
         gl.activeTexture(args.slot)
@@ -107,7 +108,10 @@ export abstract class ShaderProgram {
                     gl.LINEAR
                 )
             }
-            gl.generateMipmap(gl.TEXTURE_2D)
+            if (!args.dontGenerateMipmaps) {
+                gl.generateMipmap(gl.TEXTURE_2D)
+            }
+
             if (args.dontClamp) {
                 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
                 gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)

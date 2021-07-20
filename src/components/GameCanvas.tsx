@@ -28,6 +28,7 @@ import {
 import crosshair from '../textures/crosshair.png'
 import { Bird } from '../utils/Bird'
 import { TerrainShaderProgram } from '../utils/ShaderProgram/TerrainShaderProgram'
+import { SphereCollider } from '../utils/Collider'
 
 let camera = new Camera({})
 let root = new GameObject({})
@@ -132,6 +133,7 @@ export function GameCanvas() {
         let bird = new Bird({ intersectionRadius: 0.5 })
         bird.textureSlot = gl.TEXTURE2
         bird.translate({ v: new Vector3([0, 5, 0]) })
+        bird.collider = new SphereCollider({ gameObject: bird })
 
         root.addChild({ child: treeObj })
         root.addChild({ child: rockObj })

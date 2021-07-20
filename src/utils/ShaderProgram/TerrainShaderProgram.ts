@@ -147,13 +147,15 @@ export class TerrainShaderProgram extends ShaderProgram {
             slot: gl.TEXTURE4,
             target: this.displacement,
             dontClamp: true,
+            dontGenerateMipmaps: true,
         })
         this.normal = gl.createTexture()
         this.loadTexture({
-            src: displacement,
+            src: normal,
             slot: gl.TEXTURE5,
             target: this.normal,
             dontClamp: true,
+            dontGenerateMipmaps: true,
         })
     }
 
