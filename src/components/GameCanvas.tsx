@@ -161,23 +161,20 @@ export function GameCanvas() {
                     gameObj: GameObject,
                     rayDir: Vector3
                 ) => {
-                    if (gameObj.intersectionRadius > 0) {
-                        let origin = new Vector3([0, 0, 0])
-                        let center = gameObj.position
-                            .clone()
-                            .transform(camera.getTransform().clone().invert())
-                        let radius = gameObj.intersectionRadius
-
-                        let distance = origin.sub(center)
-
-                        let b = rayDir.dot(distance)
-                        let c = distance.dot(distance) - radius * radius
-
-                        if (b * b - c >= 0) {
+                    if (gameObj.collider) {
+                        let origin = new Vector3([0, 0, 0]).transformAsPoint(
+                            camera.getTransform()
+                        )
+                        console.log(rayDir)
+                        console.log(origin)
+                        if (
+                            gameObj.collider.raycast({
+                                rayOrigin: origin,
+                                rayDirection: rayDir,
+                            })
+                        ) {
                             console.log('collision')
                             gameObj.onClick()
-                        } else {
-                            console.log('no collision')
                         }
                     }
 
@@ -192,6 +189,8 @@ export function GameCanvas() {
                     gl.canvas.requestPointerLock()
                 } else if (document.pointerLockElement === gl.canvas) {
                     const rayDir = new Vector3([0, 0, -1])
+                        .transformAsVector(camera.getTransform())
+                        .normalize()
                     console.log('raycast')
                     checkIntersection(root, rayDir)
                 }

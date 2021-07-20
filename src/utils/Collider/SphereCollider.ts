@@ -52,7 +52,6 @@ export class SphereCollider extends Collider {
                     maximumZ = vertex.clone()
                 }
             }
-
             let distanceX = maximumX.x - minimumX.x
             let distanceY = maximumY.y - minimumY.y
             let distanceZ = maximumZ.z - minimumZ.z
@@ -109,7 +108,7 @@ export class SphereCollider extends Collider {
         let center = this.relativeCenter
             .clone()
             .transformAsPoint(this.gameObject.getTransform())
-        let l = center.clone().sub(args.rayDirection)
+        let l = center.clone().sub(args.rayOrigin)
         let lSquared = l.dot(l)
 
         if (lSquared < this.radius * this.radius) {
