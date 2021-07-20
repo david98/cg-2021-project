@@ -66,13 +66,13 @@ export class SphereCollider extends Collider {
 
             if (maxDistance === distanceX) {
                 center = this.midpoint({ point1: minimumX, point2: maximumX })
-                radius = maximumX.distance(minimumX)
+                radius = maximumX.distance(minimumX) / 2
             } else if (maxDistance === distanceY) {
                 center = this.midpoint({ point1: minimumY, point2: maximumY })
-                radius = maximumY.distance(minimumY)
+                radius = maximumY.distance(minimumY) / 2
             } else {
                 center = this.midpoint({ point1: minimumZ, point2: maximumZ })
-                radius = maximumZ.distance(minimumZ)
+                radius = maximumZ.distance(minimumZ) / 2
             }
 
             console.log(center)
@@ -108,6 +108,7 @@ export class SphereCollider extends Collider {
         let center = this.relativeCenter
             .clone()
             .transformAsPoint(this.gameObject.getTransform())
+
         let l = center.clone().sub(args.rayOrigin)
         let lSquared = l.dot(l)
 

@@ -74,13 +74,6 @@ export function GameCanvas() {
     const [loaded, setLoaded] = useState<boolean>(false)
 
     useEffect(() => {
-        window.addEventListener('resize', function () {
-            if (gl) {
-                gl.canvas.height = window.innerHeight
-                gl.canvas.width = window.innerWidth
-            }
-        })
-
         window.addEventListener('keydown', (e) => {
             if (e.key in keys) {
                 keys[e.key as keyof typeof keys] = true
@@ -106,6 +99,24 @@ export function GameCanvas() {
         for (let child of gameObj.children) {
             initMeshBuffers(gl, child)
         }
+    }
+
+    const resizeCanvasToDisplaySize = (canvas: HTMLCanvasElement) => {
+        // Lookup the size the browser is displaying the canvas in CSS pixels.
+        const displayWidth = canvas.clientWidth
+        const displayHeight = canvas.clientHeight
+
+        // Check if the canvas is not the same size.
+        const needResize =
+            canvas.width !== displayWidth || canvas.height !== displayHeight
+
+        if (needResize) {
+            // Make the canvas the same size
+            canvas.width = displayWidth
+            canvas.height = displayHeight
+        }
+
+        return needResize
     }
 
     const createGameObjects = (args: {}) => {
@@ -230,6 +241,10 @@ export function GameCanvas() {
                 vertexShaderSource: terrainVertex,
                 fragmentShaderSource: terrainFragment,
             })
+            window.addEventListener('resize', () => {
+                resizeCanvasToDisplaySize(gl.canvas as HTMLCanvasElement)
+            })
+            resizeCanvasToDisplaySize(gl.canvas as HTMLCanvasElement)
 
             initialized = true
         }
