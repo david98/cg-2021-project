@@ -40,4 +40,8 @@ export const degToRad = (deg: number) => {
     return (deg * Math.PI) / 180
 }
 
+export const getRandomArbitrary = (min: number, max: number): number => {
+    return Math.random() * (max - min) + min
+}
+
 export {}

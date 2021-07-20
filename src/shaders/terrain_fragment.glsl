@@ -21,7 +21,7 @@ void main() {
 
     float targetDistance = 10.0f;
     float decayFactor = 1.0f;
-    vec4 lightColor = vec4(1.0, 0.5, 0.0, 1.0);
+    vec4 lightColor = vec4(0.3, 0.7, 0.7, 1.0);
     float r = length(v_surfaceToLight);
     /*
       * CryEngine and Frostbite clamp the distance from the light source to a minimum which is

@@ -13,10 +13,16 @@ import {
     flowerModel,
     load as loadModels,
     rock1Model,
+    rock2Model,
+    rock3Model,
+    rock4Model,
     stumpModel,
     tree1Model,
+    tree2Model,
+    tree3Model,
+    tree4Model,
 } from '../models'
-import { degToRad } from '../utils'
+import { degToRad, getRandomArbitrary } from '../utils'
 import { OBJ } from 'webgl-obj-loader'
 import { Matrix4, Vector3 } from '@math.gl/core'
 import { GameObject } from '../utils/GameObject'
@@ -119,36 +125,76 @@ export function GameCanvas() {
         return needResize
     }
 
-    const createGameObjects = (args: {}) => {
+    const createGameObjects = (args: {
+        treesCount: number
+        rocksCount: number
+        flowersCount: number
+        stumpsCount: number
+    }) => {
         if (!gl || initialized) {
             return
         }
-        let flowerObj = new GameObject({ mesh: flowerModel })
-        flowerObj.textureSlot = gl.TEXTURE1
-        flowerObj.translate({ v: new Vector3([2, 2, -1]) })
-        let treeObj = new GameObject({ mesh: tree1Model })
-        treeObj.addChild({ child: flowerObj })
-        treeObj.textureSlot = gl.TEXTURE1
-        treeObj.tick = (args: { deltaTime: number }) => {
-            treeObj.rotate({
-                angles: new Vector3([0, degToRad(args.deltaTime), 0]),
-            })
+
+        let positions: Vector3[] = []
+        // this is terribly inefficient
+        const getFreePosition = (): Vector3 => {
+            let position: Vector3
+
+            position = new Vector3([
+                getRandomArbitrary(-100, 100),
+                0,
+                getRandomArbitrary(-100, 100),
+            ])
+
+            positions.push(position)
+            return position
         }
-        treeObj.translate({ v: new Vector3([4, 0, -1]) })
-        let rockObj = new GameObject({ mesh: rock1Model })
-        rockObj.textureSlot = gl.TEXTURE1
-        rockObj.translate({ v: new Vector3([-10, 0, -1]) })
-        let stump = new GameObject({ mesh: stumpModel })
-        stump.textureSlot = gl.TEXTURE1
-        stump.translate({ v: new Vector3([0, 0.2, 4]) })
+
+        let treeModels = [tree1Model, tree2Model, tree3Model, tree4Model]
+
+        for (let i = 0; i < args.treesCount; i++) {
+            let treeObj = new GameObject({
+                mesh: treeModels[Math.floor(Math.random() * treeModels.length)],
+            })
+            treeObj.textureSlot = gl.TEXTURE1
+            treeObj.translate({ v: getFreePosition() })
+            root.addChild({ child: treeObj })
+        }
+
+        for (let i = 0; i < args.flowersCount; i++) {
+            let flowerObj = new GameObject({ mesh: flowerModel })
+            flowerObj.textureSlot = gl.TEXTURE1
+            flowerObj.translate({
+                v: getFreePosition().add(new Vector3([0, 0.2, 0])),
+            })
+            root.addChild({ child: flowerObj })
+        }
+
+        let rockModels = [rock1Model, rock2Model, rock3Model, rock4Model]
+
+        for (let i = 0; i < args.rocksCount; i++) {
+            let rockObj = new GameObject({
+                mesh: rockModels[Math.floor(Math.random() * rockModels.length)],
+            })
+            rockObj.textureSlot = gl.TEXTURE1
+            rockObj.translate({ v: getFreePosition() })
+            root.addChild({ child: rockObj })
+        }
+
+        for (let i = 0; i < args.stumpsCount; i++) {
+            let stump = new GameObject({ mesh: stumpModel })
+            stump.textureSlot = gl.TEXTURE1
+            stump.translate({
+                v: getFreePosition().add(new Vector3([0, 0.2, 0])),
+            })
+            root.addChild({ child: stump })
+        }
+
         let bird = new Bird({ intersectionRadius: 0.5 })
         bird.textureSlot = gl.TEXTURE2
         bird.translate({ v: new Vector3([0, 5, 0]) })
         bird.collider = new SphereCollider({ gameObject: bird })
 
-        root.addChild({ child: treeObj })
-        root.addChild({ child: rockObj })
-        root.addChild({ child: stump })
         root.addChild({ child: bird })
     }
 
@@ -161,7 +207,12 @@ export function GameCanvas() {
 
     const init = () => {
         if (gl) {
-            createGameObjects({})
+            createGameObjects({
+                treesCount: 200,
+                flowersCount: 500,
+                rocksCount: 10,
+                stumpsCount: 50,
+            })
             initMeshBuffers(gl, root)
 
             if ('requestPointerLock' in gl.canvas) {
