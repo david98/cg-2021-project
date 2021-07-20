@@ -21,7 +21,7 @@ export class Camera extends GameObject {
             }
         }
 
-        // TODO: fix this shit
+        // TODO: fix this
         let temp = new Euler().fromVector3(
             new Vector3([this.yaw, this.pitch, this.roll]),
             Euler.YXZ

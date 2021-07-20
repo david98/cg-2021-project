@@ -208,8 +208,8 @@ export function GameCanvas() {
     const init = () => {
         if (gl) {
             createGameObjects({
-                treesCount: 200,
-                flowersCount: 500,
+                treesCount: 75,
+                flowersCount: 250,
                 rocksCount: 10,
                 stumpsCount: 50,
             })
@@ -311,7 +311,7 @@ export function GameCanvas() {
         fps = fps * smoothing + times.length * (1.0 - smoothing)
 
         if (framerateRef && framerateRef.current) {
-            framerateRef.current.innerText = `FPS: ${Math.round(fps)}`
+            framerateRef.current.innerText = `FPS: ${Math.round(fps / 2)}`
         }
     }
 
