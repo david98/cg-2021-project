@@ -3,24 +3,22 @@
 precision highp float;
 
 in vec2 v_texcoord;
-in mat4 fs_camera_mat;
-in mat4 fs_invtrans_camera_mat;
-in vec4 fs_normal;
+in mat4 fs_view;
+in vec3 fs_normal;
 in vec4 fs_pos;
-in vec3 v_surfaceToLight;
 
 uniform sampler2D u_diffuse;
 uniform vec3 u_directionalLightDir;
+uniform vec3 u_pointLightPosition;
 
 out vec4 outColor;
 
 void main() {
-    vec3 normal = normalize(fs_normal).xyz;
-    vec3 dirLightDir = normalize(mat3(fs_camera_mat) * -u_directionalLightDir);
-
+    vec3 normal = normalize(fs_normal);
+    vec3 v_surfaceToLight = normalize(u_pointLightPosition - fs_pos.xyz);
 
     float targetDistance = 10.0f;
-    float decayFactor = 1.0f;
+    float decayFactor = 2.0f;
     vec4 lightColor = vec4(0.3, 0.7, 0.7, 1.0);
     float r = length(v_surfaceToLight);
     /*
@@ -31,10 +29,10 @@ void main() {
     /*
      * The windowing function gracefully cuts off light at rmax
      */
-    float fWin = pow(max((1.0f - pow((r / (targetDistance * 10.0f)), 4.0f)), 0.0f), 2.0f);
+    float fWin = pow(max((1.0f - pow((r / (targetDistance)), 4.0f)), 0.0f), 2.0f);
 
-    // OlightDir = normalize(v_surfaceToLight);
-
-    outColor = texture(u_diffuse, v_texcoord) + lightColor * decayAmount * fWin + clamp(dot(normal, dirLightDir), 0.0f, 1.0f) * lightColor;
+    outColor = texture(u_diffuse, v_texcoord) +
+        // clamp(dot(normal, v_surfaceToLight), 0.0f, 1.0f) * lightColor * decayAmount * fWin +
+        clamp(dot(normal, u_directionalLightDir), 0.0f, 1.0f) * lightColor;
     outColor.w = 1.0f;
 }

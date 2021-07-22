@@ -24,7 +24,7 @@ import {
 } from '../models'
 import { degToRad, getRandomArbitrary } from '../utils'
 import { OBJ } from 'webgl-obj-loader'
-import { Matrix4, Vector3 } from '@math.gl/core'
+import { Matrix3, Matrix4, Vector3 } from '@math.gl/core'
 import { GameObject } from '../utils/GameObject'
 import Camera from '../utils/Camera'
 import {
@@ -137,13 +137,13 @@ export function GameCanvas() {
 
         let positions: Vector3[] = []
         // this is terribly inefficient
-        const getFreePosition = (): Vector3 => {
+        const getFreePosition = (min?: number, max?: number): Vector3 => {
             let position: Vector3
 
             position = new Vector3([
-                getRandomArbitrary(-100, 100),
+                getRandomArbitrary(min || -100, max || 100),
                 0,
-                getRandomArbitrary(-100, 100),
+                getRandomArbitrary(min || -100, max || 100),
             ])
 
             positions.push(position)
@@ -192,7 +192,10 @@ export function GameCanvas() {
 
         let bird = new Bird({ intersectionRadius: 0.5 })
         bird.textureSlot = gl.TEXTURE2
-        bird.translate({ v: new Vector3([0, 5, 0]) })
+        let birdPos = getFreePosition(10, 10)
+        bird.spawn = birdPos.clone()
+        birdPos.y = 5.0
+        bird.translate({ v: birdPos })
         bird.collider = new SphereCollider({ gameObject: bird })
 
         root.addChild({ child: bird })
@@ -210,7 +213,7 @@ export function GameCanvas() {
             createGameObjects({
                 treesCount: 75,
                 flowersCount: 250,
-                rocksCount: 10,
+                rocksCount: 12,
                 stumpsCount: 50,
             })
             initMeshBuffers(gl, root)
@@ -399,6 +402,9 @@ export function GameCanvas() {
 
             // Make a view matrix from the camera matrix.
             const view = camera.getTransform().clone().invert()
+            const normalMatrix = new Matrix3().fromQuaternion(
+                camera.orientation
+            )
 
             // Draw environment
             if (environmentShaderProgram) {
@@ -406,6 +412,8 @@ export function GameCanvas() {
                     gameObj: root,
                     viewMatrix: view,
                     projMatrix: projMat,
+                    normalMatrix,
+                    pointLightMatrix: view,
                 })
             }
 
@@ -414,6 +422,7 @@ export function GameCanvas() {
                 terrainShaderProgram.render({
                     viewMatrix: view,
                     projMatrix: projMat,
+                    normalMatrix,
                 })
             }
 

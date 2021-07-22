@@ -1,5 +1,5 @@
 import { ShaderProgram } from './ShaderProgram'
-import { Matrix4, Vector3 } from '@math.gl/core'
+import { Matrix3, Matrix4, Vector3 } from '@math.gl/core'
 
 import diffuse from '../../textures/terrain/diffuse.png'
 import displacement from '../../textures/terrain/displacement.png'
@@ -19,11 +19,12 @@ export class TerrainShaderProgram extends ShaderProgram {
 
     private viewMatrixLocation: WebGLUniformLocation | null
     private projMatrixLocation: WebGLUniformLocation | null
+    private normalMatrixLocation: WebGLUniformLocation | null
     private diffuseLocation: WebGLUniformLocation | null
     private displacementLocation: WebGLUniformLocation | null
     private normalLocation: WebGLUniformLocation | null
     private dirLightLocation: WebGLUniformLocation | null
-    private pointLightWorldPositionLocation: WebGLUniformLocation | null
+    private pointLightPositionLocation: WebGLUniformLocation | null
 
     private diffuse: WebGLTexture | null
     private displacement: WebGLTexture | null
@@ -115,6 +116,10 @@ export class TerrainShaderProgram extends ShaderProgram {
             this.glProgram,
             'u_proj'
         )
+        this.normalMatrixLocation = gl.getUniformLocation(
+            this.glProgram,
+            'u_normalMatrix'
+        )
         this.diffuseLocation = gl.getUniformLocation(
             this.glProgram,
             'u_diffuse'
@@ -128,7 +133,7 @@ export class TerrainShaderProgram extends ShaderProgram {
             this.glProgram,
             'u_directionalLightDir'
         )
-        this.pointLightWorldPositionLocation = gl.getUniformLocation(
+        this.pointLightPositionLocation = gl.getUniformLocation(
             this.glProgram,
             'u_lightWorldPosition'
         )
@@ -159,13 +164,18 @@ export class TerrainShaderProgram extends ShaderProgram {
         })
     }
 
-    render(args: { viewMatrix: Matrix4; projMatrix: Matrix4 }) {
+    render(args: {
+        viewMatrix: Matrix4
+        projMatrix: Matrix4
+        normalMatrix: Matrix3
+    }) {
         super.render(args)
 
         let gl = this.gl
 
         gl.uniformMatrix4fv(this.viewMatrixLocation, false, args.viewMatrix)
         gl.uniformMatrix4fv(this.projMatrixLocation, false, args.projMatrix)
+        gl.uniformMatrix3fv(this.normalMatrixLocation, false, args.normalMatrix)
 
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer)
 
@@ -197,10 +207,13 @@ export class TerrainShaderProgram extends ShaderProgram {
         gl.uniform1i(this.diffuseLocation, 3)
         gl.uniform1i(this.displacementLocation, 4)
         gl.uniform1i(this.normalLocation, 5)
-        gl.uniform3fv(this.dirLightLocation, new Vector3([1, -1, -1]))
         gl.uniform3fv(
-            this.pointLightWorldPositionLocation,
-            new Vector3([10, 10, 10])
+            this.dirLightLocation,
+            new Vector3([1, 0.5, 0]).transformByMatrix3(args.normalMatrix)
+        )
+        gl.uniform3fv(
+            this.pointLightPositionLocation,
+            new Vector3([0, 10, 0]).transformAsPoint(args.viewMatrix)
         )
 
         // Draw the geometry.

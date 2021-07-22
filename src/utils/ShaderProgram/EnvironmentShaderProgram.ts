@@ -2,14 +2,15 @@ import { ShaderProgram } from './ShaderProgram'
 import { GameObject } from '../GameObject'
 import textureImg from '../../textures/texture.jpg'
 import birdTextureImg from '../../textures/texture_bird.png'
-import { Matrix4, Vector3, Vector4 } from '@math.gl/core'
+import { Matrix3, Matrix4, Vector3, Vector4 } from '@math.gl/core'
 
 export class EnvironmentShaderProgram extends ShaderProgram {
-    private pointLightWorldPositionLocation: WebGLUniformLocation | null
+    private pointLightPositionLocation: WebGLUniformLocation | null
     private textureLocation: WebGLUniformLocation | null
     private worldMatrixLocation: WebGLUniformLocation | null
     private viewMatrixLocation: WebGLUniformLocation | null
     private projMatrixLocation: WebGLUniformLocation | null
+    private normalMatrixLocation: WebGLUniformLocation | null
     private dirLightLocation: WebGLUniformLocation | null
     private lightColorLocation: WebGLUniformLocation | null
 
@@ -32,9 +33,9 @@ export class EnvironmentShaderProgram extends ShaderProgram {
 
         let gl = this.gl
 
-        this.pointLightWorldPositionLocation = gl.getUniformLocation(
+        this.pointLightPositionLocation = gl.getUniformLocation(
             this.glProgram,
-            'u_lightWorldPosition'
+            'u_pointLightPosition'
         )
         this.textureLocation = gl.getUniformLocation(
             this.glProgram,
@@ -51,6 +52,10 @@ export class EnvironmentShaderProgram extends ShaderProgram {
         this.projMatrixLocation = gl.getUniformLocation(
             this.glProgram,
             'u_proj'
+        )
+        this.normalMatrixLocation = gl.getUniformLocation(
+            this.glProgram,
+            'u_normalMatrix'
         )
         this.dirLightLocation = gl.getUniformLocation(
             this.glProgram,
@@ -181,6 +186,8 @@ export class EnvironmentShaderProgram extends ShaderProgram {
         gameObj: GameObject
         viewMatrix: Matrix4
         projMatrix: Matrix4
+        normalMatrix: Matrix3
+        pointLightMatrix: Matrix4
     }) {
         super.render(args)
         let gl = this.gl
@@ -189,11 +196,15 @@ export class EnvironmentShaderProgram extends ShaderProgram {
         gl.uniformMatrix4fv(this.worldMatrixLocation, false, worldMat)
         gl.uniformMatrix4fv(this.viewMatrixLocation, false, args.viewMatrix)
         gl.uniformMatrix4fv(this.projMatrixLocation, false, args.projMatrix)
-        gl.uniform3fv(this.dirLightLocation, new Vector3([1, -1, -1]))
+        gl.uniformMatrix3fv(this.normalMatrixLocation, false, args.normalMatrix)
+        gl.uniform3fv(
+            this.dirLightLocation,
+            new Vector3([1, 0.5, 1]).transformByMatrix3(args.normalMatrix)
+        )
         gl.uniform4fv(this.lightColorLocation, new Vector4([1, 0.5, 0, 1]))
         gl.uniform3fv(
-            this.pointLightWorldPositionLocation,
-            new Vector3([10, 10, 10])
+            this.pointLightPositionLocation,
+            new Vector3([0, 5, 0]).transformAsPoint(args.viewMatrix)
         )
 
         this.renderRecursive({
