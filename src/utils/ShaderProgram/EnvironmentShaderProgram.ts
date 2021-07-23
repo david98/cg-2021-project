@@ -201,10 +201,7 @@ export class EnvironmentShaderProgram extends ShaderProgram {
             new Vector3([1, 0.5, 1]).transformByMatrix3(args.normalMatrix)
         )
         gl.uniform4fv(this.lightColorLocation, new Vector4([1, 0.5, 0, 1]))
-        gl.uniform3fv(
-            this.pointLightPositionLocation,
-            new Vector3([0, 5, 0]).transformAsPoint(args.viewMatrix)
-        )
+        gl.uniform3fv(this.pointLightPositionLocation, new Vector3([0, 0, 0]))
 
         this.renderRecursive({
             gameObj: args.gameObj,

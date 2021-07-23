@@ -15,11 +15,11 @@ out vec4 outColor;
 
 void main() {
     vec3 normal = normalize(fs_normal);
-    vec3 v_surfaceToLight = u_pointLightPosition - (fs_pos.xyz / fs_pos.w);
+    vec3 v_surfaceToLight = u_pointLightPosition - fs_pos.xyz;
 
-    float targetDistance = 15.0f;
+    float targetDistance = 4.0f;
     float decayFactor = 2.0f;
-    vec4 lightColor = vec4(0.3, 0.7, 0.7, 1.0);
+    vec4 lightColor = vec4(0.3, 0.4, 0.4, 1.0);
     float r = length(v_surfaceToLight);
     /*
       * CryEngine and Frostbite clamp the distance from the light source to a minimum which is
