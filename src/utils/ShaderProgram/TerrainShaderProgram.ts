@@ -213,7 +213,7 @@ export class TerrainShaderProgram extends ShaderProgram {
         )
         gl.uniform3fv(
             this.pointLightPositionLocation,
-            new Vector3([0, 10, 0]).transformAsPoint(args.viewMatrix)
+            new Vector3([0, 5, 0]).transformAsPoint(args.viewMatrix)
         )
 
         // Draw the geometry.

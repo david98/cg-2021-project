@@ -413,7 +413,6 @@ export function GameCanvas() {
                     viewMatrix: view,
                     projMatrix: projMat,
                     normalMatrix,
-                    pointLightMatrix: view,
                 })
             }
 

@@ -187,7 +187,6 @@ export class EnvironmentShaderProgram extends ShaderProgram {
         viewMatrix: Matrix4
         projMatrix: Matrix4
         normalMatrix: Matrix3
-        pointLightMatrix: Matrix4
     }) {
         super.render(args)
         let gl = this.gl

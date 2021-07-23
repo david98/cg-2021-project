@@ -20,9 +20,9 @@ out vec4 outColor;
 
 void main() {
     vec3 normal = normalize(fs_normal);
-    vec3 v_surfaceToLight = normalize(u_pointLightPosition - fs_pos.xyz);
+    vec3 v_surfaceToLight = u_pointLightPosition - (fs_pos.xyz / fs_pos.w);
 
-    float targetDistance = 5.0f;
+    float targetDistance = 15.0f;
     float decayFactor = 2.0f;
     vec4 lightColor = vec4(0.3, 0.7, 0.7, 1.0);
     float r = length(v_surfaceToLight);
@@ -38,7 +38,7 @@ void main() {
 
 
     outColor = texture(u_texture, v_texcoord) +
-        // clamp(dot(normal, v_surfaceToLight), 0.0f, 1.0f) * lightColor * decayAmount * fWin +
+        clamp(dot(normal, normalize(v_surfaceToLight)), 0.0f, 1.0f) * lightColor * decayAmount * fWin +
         clamp(dot(normal, u_directionalLightDir), 0.0f, 1.0f) * lightColor;
     outColor.w = 1.0f;
 }
